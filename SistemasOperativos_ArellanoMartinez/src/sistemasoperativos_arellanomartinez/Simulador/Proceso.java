@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package sistemasoperativos_arellanomartinez.Simulador.model;
+package sistemasoperativos_arellanomartinez.Simulador;
 
 /**
  *
@@ -24,7 +24,7 @@ public class Proceso {
     
     public enum Estado {
         NUEVO, LISTO, EJECUTANDO, BLOQUEADO, 
-        SUS_LISTO, SUS_BLOQUEADO
+        SUS_LISTO, SUS_BLOQUEADO, TERMINADO
     }
     
     public Proceso(String name, int totalInstructions, boolean isCpuBound, 

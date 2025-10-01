@@ -3,19 +3,20 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package sistemasoperativos_arellanomartinez.Planificador;
-import java.util.List;
+import edd.ListaSimple;  //Importar primitiva
 /**
  *
  * @author raiza
  */
 public abstract class Planificador {
-    protected List<Process> readyQueue;
+    protected ListaSimple readyQueue; //
     protected Process currentProcess;
     protected String algorithmName;
     
     public Planificador() {
-        // Debes implementar tu propia List aquí
-        this.readyQueue = new Lista<>();//primitiva // Implementar esta clase
+        // Implementar Primitiva Lista
+        this.readyQueue = new ListaSimple();
+        this.currentProcess = null;
     }
     
     public abstract Process selectNextProcess();
@@ -28,7 +29,8 @@ public abstract class Planificador {
         return algorithmName;
     }
     
-    public List<Process> getReadyQueue() {
+    //metodo llamado get
+    public ListaSimple getReadyQueue() {
         return readyQueue;
     }
     

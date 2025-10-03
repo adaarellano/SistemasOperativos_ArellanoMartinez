@@ -3,13 +3,15 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package sistemasoperativos_arellanomartinez.Planificador;
-import edd.ListaSimple;  //Importar primitiva
+
+import edd.ListaSimple;
+
 /**
  *
  * @author raiza
  */
 public abstract class Planificador {
-    protected ListaSimple readyQueue; //
+        protected ListaSimple readyQueue; //
     protected Process currentProcess;
     protected String algorithmName;
     
@@ -41,4 +43,5 @@ public abstract class Planificador {
     public boolean hasProcesses() {
         return !readyQueue.isEmpty() || currentProcess != null;
     }
+}
 }

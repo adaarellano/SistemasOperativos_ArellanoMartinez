@@ -44,4 +44,3 @@ public abstract class Planificador {
         return !readyQueue.isEmpty() || currentProcess != null;
     }
 }
-}

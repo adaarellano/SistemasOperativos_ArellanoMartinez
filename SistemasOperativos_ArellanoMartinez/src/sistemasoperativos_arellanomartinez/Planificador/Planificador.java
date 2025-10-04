@@ -1,46 +1,29 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
  */
 package sistemasoperativos_arellanomartinez.Planificador;
+import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 
-import edd.ListaSimple;
 
 /**
- *
- * @author raiza
+ *Define el contrato que todos los algoritmos de planificación deben seguir. 
+ * Esto permite cambiar dinámicamente entre diferentes políticas.
+ * @author Indatech
  */
-public abstract class Planificador {
-        protected ListaSimple readyQueue; //
-    protected Process currentProcess;
-    protected String algorithmName;
+public interface Planificador {
+    // 🔹 SELECCIÓN DEL SIGUIENTE PROCESO
+    Proceso siguienteProceso();
     
-    public Planificador() {
-        // Implementar Primitiva Lista
-        this.readyQueue = new ListaSimple();
-        this.currentProcess = null;
-    }
+    // 🔹 GESTIÓN DE COLAS
+    void agregarProceso(Proceso proceso);
+    void eliminarProceso(Proceso proceso);
     
-    public abstract Process selectNextProcess();
+    // 🔹 SINCRONIZACIÓN CON RELOJ
+    void actualizarCiclo(int ciclo);
     
-    public abstract void addProcess(Process process);
+    // 🔹 CONTROL DE ESTADO
+    boolean tieneProcesos();
+    String getNombre();
     
-    public abstract void reorganizeQueues();
-    
-    public String getAlgorithmName() {
-        return algorithmName;
-    }
-    
-    //metodo llamado get
-    public ListaSimple getReadyQueue() {
-        return readyQueue;
-    }
-    
-    public Process getCurrentProcess() {
-        return currentProcess;
-    }
-    
-    public boolean hasProcesses() {
-        return !readyQueue.isEmpty() || currentProcess != null;
-    }
 }

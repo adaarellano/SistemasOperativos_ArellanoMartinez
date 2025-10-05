@@ -30,31 +30,28 @@ public class ListaSimple {
     }
     
     public void insertBegin(Object nodo){
-        Nodo temp = new Nodo(nodo);
-        if(isEmpty()){
+         Nodo temp = new Nodo(nodo);
+        if (isEmpty()) {
             this.head = temp;
-        }else{
+        } else {
             temp.setPnext(this.head);
             this.head = temp;
         }
-        size ++;
+        this.size++;  // Siempre al final
     }
     
-    public void insetFinal(Object nodo){
+    public void insertFinal(Object nodo){
         Nodo temp = new Nodo(nodo);
-        Nodo aux = this.head;
-        if(isEmpty()){
-            insertBegin(nodo);
-        }
-        else{
-            while(aux.getPnext() != null){
+        if (isEmpty()) {
+            this.head = temp;  // Maneja vacío directamente, sin llamar insertBegin
+        } else {
+            Nodo aux = this.head;
+            while (aux.getPnext() != null) {
                 aux = aux.getPnext();
             }
             aux.setPnext(temp);
-            
         }
-        size ++;
-        
+        this.size++;  // Solo UNA vez, al final        
     }
     
     public void deleteBegin(){
@@ -69,22 +66,25 @@ public class ListaSimple {
     }
     
     public void deleteFinal(){
+        if (isEmpty()) {
+            System.out.println("La lista está vacía");
+            return;
+        }
+        if (this.size == 1) {  // Caso especial: solo head
+            this.head = null;
+            this.size--;
+            return;
+        }
         Nodo aux = this.head;
-        if(isEmpty()){
-            System.out.println("La lista esta vacia");
+        while (aux.getPnext().getPnext() != null) {  // Ahora seguro (size > 1)
+            aux = aux.getPnext();
         }
-        else{
-           while(aux.getPnext().getPnext() != null){
-               aux = aux.getPnext();
-           }
-           aux.setPnext(null);
-           size--;
-           
-        }
+        aux.setPnext(null);
+        this.size--;
     }
       
     public int sizeLista(){
-        return this.size;
+        return this.getSize();
     }
     
     public boolean search(Object dato) {
@@ -98,4 +98,74 @@ public class ListaSimple {
         return false; 
 }
 
+    /**
+     * @return the size
+     */
+    public int getSize() {
+        return size;
+    }
+    
+    /**
+ * Obtiene el dato (Proceso) en el índice especificado sin removerlo.
+ * NECESARIO para iterar y encontrar el proceso más corto.
+ * @param index La posición del elemento (0-based).
+ * @return El objeto (Proceso) en esa posición.
+ */
+    public Object get(int index) {
+      if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException("Índice fuera de rango: " + index);
+        }
+        Nodo tmp = this.head;
+        if (tmp == null) {  // Check inicial si head null pero size >0 (inconsistencia)
+            return null;
+        }
+        
+        for (int i = 0; i < index; i++) {
+            if (tmp == null) {  // ← NUEVO: Check defensivo para evitar NPE si size inflado
+                throw new IndexOutOfBoundsException("Lista inconsistente: size=" + size + " pero solo " + i + " nodos");
+            }
+            tmp = tmp.getPnext();
+        }
+        
+        if (tmp == null) {  // Check final
+            throw new IndexOutOfBoundsException("Nodo null al final del bucle (lista inconsistente)");
+        }
+        
+        return tmp.getData();
+    }
+
+    /**
+ * Elimina la primera ocurrencia del objeto especificado de la lista.
+ * NECESARIO para sacar un Proceso de la cola cuando es seleccionado.
+ * @param elemento El objeto (Proceso) a remover.
+ * @return true si el elemento fue encontrado y eliminado, false en caso contrario.
+ */
+     public boolean remove(Object elemento) {
+        if (isEmpty()) {
+            return false;
+        }
+
+        if (head.getData().equals(elemento)) {
+            deleteBegin(); 
+            return true;
+        }
+        
+        Nodo actual = head;
+        Nodo anterior = null;
+
+        while (actual != null && !actual.getData().equals(elemento)) {
+            anterior = actual;
+            actual = actual.getPnext();
+        }
+
+        if (actual == null) {
+            return false;
+        }
+
+        anterior.setPnext(actual.getPnext());
+        
+        size--; 
+        return true;
+    }
+    
 }

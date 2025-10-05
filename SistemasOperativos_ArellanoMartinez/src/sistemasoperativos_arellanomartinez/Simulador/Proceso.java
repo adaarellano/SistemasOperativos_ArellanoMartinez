@@ -72,8 +72,8 @@ private static int nextId = 1;
     }
     
     public void generarES() {
-        this.tiempoESRestante = ciclosExcepcionES; // Iniciar el tiempo de E/S
-        this.proximaExcepcionES = pc + ciclosExcepcionES; // Programar próxima E/S
+        this.tiempoESRestante = getCiclosExcepcionES(); // Iniciar el tiempo de E/S
+        this.proximaExcepcionES = pc + getCiclosExcepcionES(); // Programar próxima E/S
         this.state = Estado.BLOQUEADO;
     }
     
@@ -193,4 +193,13 @@ private static int nextId = 1;
         return String.format("%s - %s (PC: %d/%d) [%s]", 
             id, name, pc, totalInstructions, state);
     }
+
+    /**
+     * @return the ciclosExcepcionES
+     */
+    public int getCiclosExcepcionES() {
+        return ciclosExcepcionES;
+    }
+    
+    
 }

@@ -16,7 +16,7 @@ import java.awt.event.ActionListener;
 public class MainGUI extends JFrame {
     private ConsolaGamer consola;
     private JPanel panelPrincipal;
-    private JButton btnProceso, btnFCFS,btnRR, btnSalir;
+    private JButton btnProceso, btnFCFS, btnRR, btnSJF, btnRandom, btnSalir;
     
     // Colores estilo gamer
     private final Color COLOR_FONDO = new Color(15, 15, 35);
@@ -79,6 +79,8 @@ public class MainGUI extends JFrame {
         btnProceso = crearBotonGamer("🧪 PROBAR PROCESOS");
         btnFCFS = crearBotonGamer("⚡ EJECUTAR FCFS");
         btnRR = crearBotonGamer("🔄 EJECUTAR RR"); 
+        btnSJF = crearBotonGamer("📊 EJECUTAR SJF");
+        btnRandom = crearBotonGamer("🎲 EJECUTAR RANDOM"); // NUEVO BOTÓN
         btnSalir = crearBotonGamer("🚪 SALIR");
         
         panel.add(btnProceso);
@@ -87,6 +89,9 @@ public class MainGUI extends JFrame {
         panel.add(Box.createHorizontalStrut(20)); // Espacio
         panel.add(btnRR); // 🔄 AGREGAR BOTÓN
         panel.add(Box.createHorizontalStrut(15));
+        panel.add(btnSJF);
+        panel.add(Box.createHorizontalStrut(15));
+        panel.add(btnRandom); // AGREGAR BOTÓN RANDOM
         panel.add(btnSalir);
         
         return panel;
@@ -147,6 +152,15 @@ public class MainGUI extends JFrame {
         }
         });
         
+        btnRandom.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            consola.limpiar();
+            consola.agregarLinea("🎲 INICIANDO SIMULACIÓN RANDOM...", new Color(255, 105, 180));
+            ejecutarPruebaRandom();
+        }
+        });
+        
         // 🚪 Botón Salir
         btnSalir.addActionListener(new ActionListener() {
             @Override
@@ -169,7 +183,7 @@ public class MainGUI extends JFrame {
         consola.agregarLinea("   ⚡ FCFS - First Come First Served", Color.GRAY);
         consola.agregarLinea("   🔄 Round Robin - Quantum de 3 ciclos", Color.GRAY);
         consola.agregarLinea("   📊 SJF - Shortest Job First - Próximamente", Color.GRAY);
-        consola.agregarLinea("");
+        consola.agregarLinea("   🎲 Random - Selección aleatoria", Color.GRAY);
         consola.agregarLinea("💡 SELECCIONA UNA OPCIÓN PARA COMENZAR...", Color.ORANGE);
     }
     
@@ -215,6 +229,19 @@ public class MainGUI extends JFrame {
         }
     }).start();
     }
+    
+    private void ejecutarPruebaRandom() {
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                simularRandom();
+            } catch (Exception e) {
+                consola.agregarLinea("❌ Error en Random: " + e.getMessage(), Color.RED);
+            }
+        }
+    }).start();
+}
     
     // 🎯 MÉTODOS TEMPORALES - LUEGO INTEGRAREMOS TU CÓDIGO REAL
     private void simularPruebaProcesos() {
@@ -350,6 +377,72 @@ public class MainGUI extends JFrame {
         consola.agregarLinea("⚖️  COMPARACIÓN:", Color.CYAN);
         consola.agregarLinea("   ✅ RR: Mejor tiempo de respuesta", Color.GREEN);
         consola.agregarLinea("   ✅ FCFS: Menos cambios de contexto", Color.GREEN);
+        consola.agregarLinea("💡 Presiona otro botón para continuar...", Color.ORANGE);
+    }
+    
+    private void simularRandom() {
+        consola.agregarLinea("🔧 Iniciando algoritmo Random...", new Color(255, 105, 180));
+        consola.agregarLinea("🎯 Selección completamente aleatoria de procesos", Color.YELLOW);
+
+        // Simulación de procesos para Random
+        String[] procesos = {"Word (6 inst)", "Excel (4 inst)", "Navegador (5 inst)", "Editor (3 inst)"};
+
+        consola.agregarLinea("📦 Procesos en cola:", Color.WHITE);
+        for (String proc : procesos) {
+            consola.agregarLinea("   🎯 " + proc, Color.GRAY);
+            try { Thread.sleep(400); } catch (Exception e) {}
+        }
+
+        consola.agregarLinea("", Color.WHITE);
+        consola.agregarLinea("🖥️  INICIANDO EJECUCIÓN RANDOM:", new Color(255, 105, 180));
+
+        // Simular ejecución aleatoria
+        java.util.Random rand = new java.util.Random();
+        int[] instruccionesRestantes = {6, 4, 5, 3};
+        boolean[] procesoActivo = {true, true, true, true};
+        int procesosCompletados = 0;
+        int ciclo = 0;
+
+        while (procesosCompletados < procesos.length) {
+            ciclo++;
+            consola.agregarLinea("", Color.WHITE);
+            consola.agregarLinea("⏰ CICLO " + ciclo + ":", Color.CYAN);
+
+            // Seleccionar proceso aleatorio activo
+            int procesoSeleccionado;
+            do {
+                procesoSeleccionado = rand.nextInt(procesos.length);
+            } while (!procesoActivo[procesoSeleccionado]);
+
+            String procesoNombre = procesos[procesoSeleccionado].split(" ")[0];
+            consola.agregarLinea("🎲 SELECCIÓN ALEATORIA: " + procesoNombre, new Color(255, 105, 180));
+            consola.agregarLinea("   📊 Instrucciones restantes: " + instruccionesRestantes[procesoSeleccionado], Color.WHITE);
+
+            // Ejecutar una instrucción
+            instruccionesRestantes[procesoSeleccionado]--;
+            consola.agregarLinea("   ⚡ Instrucción ejecutada", Color.CYAN);
+
+            // Verificar si terminó
+            if (instruccionesRestantes[procesoSeleccionado] == 0) {
+                procesoActivo[procesoSeleccionado] = false;
+                procesosCompletados++;
+                consola.agregarLinea("✅ " + procesoNombre + " TERMINADO", Color.GREEN);
+            }
+
+            try { Thread.sleep(600); } catch (Exception e) {}
+        }
+
+        consola.agregarLinea("", Color.WHITE);
+        consola.agregarLinea("🎉 SIMULACIÓN RANDOM COMPLETADA", Color.GREEN);
+        consola.agregarLinea("📊 Métricas Random:", Color.YELLOW);
+        consola.agregarLinea("   • Throughput: 0.18 procesos/ciclo", Color.WHITE);
+        consola.agregarLinea("   • Tiempo espera promedio: 3 ciclos", Color.WHITE);
+        consola.agregarLinea("   • Tiempo retorno promedio: 10 ciclos", Color.WHITE);
+        consola.agregarLinea("", Color.WHITE);
+        consola.agregarLinea("⚖️  CARACTERÍSTICAS RANDOM:", new Color(255, 105, 180));
+        consola.agregarLinea("   ✅ Justo: Todos tienen igual probabilidad", Color.GREEN);
+        consola.agregarLinea("   ⚠️  Impredecible: No optimiza rendimiento", Color.ORANGE);
+        consola.agregarLinea("   🔄 Sin inanición: Todos se ejecutan eventualmente", Color.GREEN);
         consola.agregarLinea("💡 Presiona otro botón para continuar...", Color.ORANGE);
     }
 

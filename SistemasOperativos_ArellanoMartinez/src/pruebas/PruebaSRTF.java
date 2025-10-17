@@ -4,102 +4,266 @@ import sistemasoperativos_arellanomartinez.Planificador.SRTF;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 
+/**
+ * Clase para probar el algoritmo SRTF con procesos que usan hilos
+ */
 public class PruebaSRTF {
-    public static void main(String[] args) {
-        System.out.println("🎯 === PRUEBA SRTF CON ENTRADA/SALIDA (E/S) ===");
+    private SRTF planificador;
+    private Reloj reloj;
+    
+    public PruebaSRTF() {
+        this.planificador = new SRTF();
+        this.reloj = new Reloj(100); // 100ms por ciclo
+    }
+    
+    /**
+     * Prueba básica de SRTF con procesos cortos
+     */
+    public void pruebaBasica() {
+        System.out.println("🚀 INICIANDO PRUEBA BÁSICA SRTF");
+        System.out.println("=" .repeat(50));
         
-        SRTF srtf = new SRTF();
+        // Crear procesos de prueba
+        Proceso p1 = new Proceso("P1", 5, false, 3, 2, 0);
+        Proceso p2 = new Proceso("P2", 3, false, 4, 1, 0);
+        Proceso p3 = new Proceso("P3", 8, false, 5, 2, 0);
         
-        // Crear procesos I/O-bound que generan E/S
-        Proceso p1 = new Proceso("NAVEGADOR", 8, false, 3, 2, 0);  // E/S cada 3 ciclos
-        Proceso p2 = new Proceso("EDITOR", 6, false, 2, 1, 0);     // E/S cada 2 ciclos
-        Proceso p3 = new Proceso("CALCULO", 10, true, 0, 0, 0);    // CPU-bound (sin E/S)
+        // Agregar procesos al planificador
+        planificador.agregarProceso(p1);
+        planificador.agregarProceso(p2);
+        planificador.agregarProceso(p3);
         
-        System.out.println("📦 Procesos creados (con E/S):");
-        System.out.println("- " + p1.getName() + " (E/S cada " + p1.getCiclosExcepcionES() + " ciclos)");
-        System.out.println("- " + p2.getName() + " (E/S cada " + p2.getCiclosExcepcionES() + " ciclos)");
-        System.out.println("- " + p3.getName() + " (CPU-bound, sin E/S)");
+        // Ejecutar simulación
+        ejecutarSimulacion(15);
         
-        // Agregar todos los procesos al inicio
-        srtf.agregarProceso(p1);
-        srtf.agregarProceso(p2);
-        srtf.agregarProceso(p3);
+        mostrarMetricasFinales(p1, p2, p3);
+    }
+    
+    /**
+     * Prueba con llegada escalonada de procesos
+     */
+    public void pruebaLlegadaEscalonada() {
+        System.out.println("\n🕒 INICIANDO PRUEBA LLEGADA ESCALONADA SRTF");
+        System.out.println("=" .repeat(50));
         
-        System.out.println("\n--- INICIANDO SIMULACIÓN (20 ciclos) ---");
+        planificador = new SRTF();
+        reloj = new Reloj(100);
         
-        for (int ciclo = 0; ciclo < 20; ciclo++) {
-            System.out.println("\n--- CICLO " + ciclo + " ---");
-            Reloj.tick();
+        // Procesos que llegan en diferentes ciclos
+        Proceso p1 = new Proceso("P1-Largo", 10, false, 6, 2, 0);
+        Proceso p2 = new Proceso("P2-Corto", 4, false, 3, 1, 2);
+        Proceso p3 = new Proceso("P3-Medio", 6, false, 4, 1, 4);
+        
+        planificador.agregarProceso(p1);
+        
+        // Simular 15 ciclos con llegada escalonada
+        for (int ciclo = 0; ciclo < 15; ciclo++) {
+            System.out.println("\n--- Ciclo " + ciclo + " ---");
             
-            // 1. Seleccionar y ejecutar proceso
-            Proceso actual = srtf.seleccionarProximoProceso();
-            
-            if (actual != null) {
-                System.out.println("⚡ CPU: " + actual.getName());
-                
-                // Ejecutar instrucción
-                actual.ejecutarInstruccion();
-                System.out.println("   → PC: " + actual.getPc() + "/" + actual.getTotalInstructions() + 
-                                 " | Restantes: " + actual.getInstruccionesRestantes());
-                
-                // 2. Verificar si debe generar E/S
-                if (actual.debeGenerarES() && !actual.estaEnES()) {
-                    System.out.println("🚨 " + actual.getName() + " GENERA E/S!");
-                    actual.generarES();
-                    srtf.procesoBloqueado(actual);
-                }
-                
-                // 3. Verificar si terminó
-                if (actual.isFinished()) {
-                    System.out.println("✅ " + actual.getName() + " TERMINÓ!");
-                    actual.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                }
-            } else {
-                System.out.println("💤 CPU: No hay procesos listos");
+            // Agregar procesos en ciclos específicos
+            if (ciclo == 2) {
+                System.out.println("📥 Llega P2 en ciclo 2");
+                planificador.agregarProceso(p2);
+            }
+            if (ciclo == 4) {
+                System.out.println("📥 Llega P3 en ciclo 4");
+                planificador.agregarProceso(p3);
             }
             
-            // 4. Procesar E/S de todos los procesos bloqueados
-            procesarES(srtf, p1, p2, p3);
+            ejecutarCiclo(ciclo);
             
-            // 5. Mostrar estado
-            System.out.println("📊 " + srtf.getEstadoCompleto());
-            
-            if (!srtf.tieneProcesos()) {
-                System.out.println("🏁 TODOS LOS PROCESOS TERMINARON");
+            if (!planificador.tieneProcesos()) {
+                System.out.println("✅ Todos los procesos terminaron");
                 break;
             }
         }
         
-        System.out.println("\n=== MÉTRICAS FINALES CON E/S ===");
-        mostrarMetricasDetalladas(p1);
-        mostrarMetricasDetalladas(p2);
-        mostrarMetricasDetalladas(p3);
+        mostrarMetricasFinales(p1, p2, p3);
     }
     
     /**
-     * Procesa E/S de todos los procesos
+     * Prueba con procesos CPU-Bound y I/O-Bound mezclados
      */
-    private static void procesarES(SRTF srtf, Proceso... procesos) {
-        for (Proceso p : procesos) {
-            if (p.estaEnES()) {
-                System.out.println("⏳ " + p.getName() + " en E/S (" + 
-                    p.getTiempoESRestante() + " ciclos restantes)");
-                p.procesarCicloES();
-                
-                // Si terminó la E/S, volver a lista de listos
-                if (!p.estaEnES() && !p.isFinished()) {
-                    srtf.procesoVolvioDeES(p);
-                }
+    public void pruebaMixCPUIO() {
+        System.out.println("\n🔀 INICIANDO PRUEBA MIX CPU/I-O SRTF");
+        System.out.println("=" .repeat(50));
+        
+        planificador = new SRTF();
+        reloj = new Reloj(100);
+        
+        // Proceso CPU-Bound (sin E/S)
+        Proceso cpu1 = new Proceso("CPU1", 6, true, 0, 0, 0);
+        // Procesos I/O-Bound (con E/S frecuente)
+        Proceso io1 = new Proceso("IO1", 8, false, 2, 2, 0);
+        Proceso io2 = new Proceso("IO2", 5, false, 3, 1, 1);
+        
+        planificador.agregarProceso(cpu1);
+        planificador.agregarProceso(io1);
+        planificador.agregarProceso(io2);
+        
+        ejecutarSimulacion(20);
+        
+        mostrarMetricasFinales(cpu1, io1, io2);
+    }
+    
+    /**
+     * Prueba de apropiación (preemption) de SRTF
+     */
+    public void pruebaPreemption() {
+        System.out.println("\n⚡ INICIANDO PRUEBA PREEMPTION SRTF");
+        System.out.println("=" .repeat(50));
+        
+        planificador = new SRTF();
+        reloj = new Reloj(100);
+        
+        // Proceso largo que será interrumpido por uno más corto
+        Proceso largo = new Proceso("Largo", 15, false, 8, 2, 0);
+        Proceso corto = new Proceso("Corto", 3, false, 2, 1, 3);
+        
+        planificador.agregarProceso(largo);
+        
+        // Simular apropiación
+        for (int ciclo = 0; ciclo < 10; ciclo++) {
+            System.out.println("\n--- Ciclo " + ciclo + " ---");
+            
+            // El proceso corto llega en ciclo 3
+            if (ciclo == 3) {
+                System.out.println("🚨 Llega proceso CORTO que interrumpirá al LARGO");
+                planificador.agregarProceso(corto);
+            }
+            
+            ejecutarCiclo(ciclo);
+            
+            if (!planificador.tieneProcesos()) {
+                break;
+            }
+        }
+        
+        mostrarMetricasFinales(largo, corto);
+    }
+    
+    /**
+     * Ejecuta un ciclo completo de simulación
+     */
+    private void ejecutarCiclo(int ciclo) {
+        Reloj.setCurrentCycle(ciclo);
+        
+        // 1. Seleccionar y ejecutar proceso
+        Proceso actual = planificador.seleccionarProximoProceso();
+        
+        if (actual != null) {
+            // 2. Simular ejecución (el proceso se ejecuta en su hilo automáticamente)
+            System.out.println("⚡ Ejecutando: " + actual.getName() + 
+                             " - PC: " + actual.getPc() + 
+                             "/" + actual.getTotalInstructions() +
+                             " - Restantes: " + actual.getInstruccionesRestantes());
+            
+            // 3. Simular E/S aleatoria (para hacer la prueba más interesante)
+            simularEventosES(actual, ciclo);
+            
+            // 4. Verificar si el proceso terminó durante este ciclo
+            if (actual.isFinished()) {
+                System.out.println("🎉 " + actual.getName() + " TERMINÓ en ciclo " + ciclo);
+                planificador.procesoTerminado(actual);
+            }
+        } else {
+            System.out.println("💤 No hay procesos para ejecutar");
+        }
+        
+        // 5. Mostrar estado del planificador
+        System.out.println("📊 Estado: " + planificador.getEstadoCompleto());
+        
+        // Pequeña pausa para ver la ejecución
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Simula eventos de E/S para hacer la prueba más realista
+     */
+    private void simularEventosES(Proceso proceso, int ciclo) {
+        // Simular que un proceso genera E/S (10% de probabilidad por ciclo)
+        if (!proceso.isCpuBound() && Math.random() < 0.1 && !proceso.estaEnES()) {
+            System.out.println("🚨 " + proceso.getName() + " genera E/S en ciclo " + ciclo);
+            proceso.generarES();
+            planificador.procesoBloqueado(proceso);
+        }
+        
+        // Simular procesos que vuelven de E/S (manejo simple)
+        // En una implementación real esto lo haría un gestor de E/S
+        if (proceso.estaEnES()) {
+            proceso.procesarCicloES();
+            if (!proceso.estaEnES() && proceso.getState() == Proceso.Estado.LISTO) {
+                System.out.println("✅ " + proceso.getName() + " vuelve de E/S");
+                planificador.procesoVolvioDeES(proceso);
             }
         }
     }
     
-    private static void mostrarMetricasDetalladas(Proceso p) {
-        System.out.println("\n" + p.getName() + ":");
-        System.out.println("  - Instrucciones: " + p.getPc() + "/" + p.getTotalInstructions());
-        System.out.println("  - Tiempo de espera: " + p.getTiempoEspera() + " ciclos");
-        System.out.println("  - Tiempo de retorno: " + p.getTiempoRetorno() + " ciclos");
-        System.out.println("  - Estado: " + p.getState());
-        System.out.println("  - Tipo: " + (p.isCpuBound() ? "CPU-bound" : "I/O-bound"));
+    /**
+     * Ejecuta una simulación completa por N ciclos
+     */
+    private void ejecutarSimulacion(int ciclosTotales) {
+        for (int ciclo = 0; ciclo < ciclosTotales; ciclo++) {
+            System.out.println("\n--- Ciclo " + ciclo + " ---");
+            ejecutarCiclo(ciclo);
+            
+            if (!planificador.tieneProcesos()) {
+                System.out.println("✅ Todos los procesos terminaron en ciclo " + ciclo);
+                break;
+            }
+        }
+    }
+    
+    /**
+     * Muestra métricas finales de los procesos
+     */
+    private void mostrarMetricasFinales(Proceso... procesos) {
+        System.out.println("\n📈 MÉTRICAS FINALES");
+        System.out.println("-".repeat(50));
+        
+        for (Proceso p : procesos) {
+            System.out.printf("%s: Tiempo Espera=%d, Tiempo Retorno=%d, Tiempo Ejecución=%d, Estado=%s%n",
+                p.getName(),
+                p.getTiempoEspera(),
+                p.getTiempoRetorno(),
+                p.getTiempoEjecucionTotal(),
+                p.getState());
+        }
+    }
+    
+    /**
+     * Ejecuta todas las pruebas
+     */
+    public void ejecutarTodasLasPruebas() {
+        System.out.println("🧪 INICIANDO SUITE DE PRUEBAS SRTF");
+        System.out.println("⭐ Pruebas con procesos multi-hilo");
+        System.out.println("=" .repeat(60));
+        
+        pruebaBasica();
+        pruebaLlegadaEscalonada();
+        pruebaMixCPUIO();
+        pruebaPreemption();
+        
+        System.out.println("\n🎉 TODAS LAS PRUEBAS COMPLETADAS");
+    }
+    
+    /**
+     * Método main para ejecutar las pruebas
+     */
+    public static void main(String[] args) {
+        PruebaSRTF tester = new PruebaSRTF();
+        tester.ejecutarTodasLasPruebas();
+        
+        // Mantener el programa vivo para que los hilos terminen
+        try {
+            Thread.sleep(2000);
+            System.out.println("\n🔚 Programa terminado");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

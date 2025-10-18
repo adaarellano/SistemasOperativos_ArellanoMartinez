@@ -4,30 +4,34 @@
  */
 package sistemasoperativos_arellanomartinez.Planificador;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
+import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso.Estado;
 import edd.Cola;
 import java.util.concurrent.Semaphore;
+import java.util.Random;
 /**
  *
- * @author day y ada
+ * @author Day y Ada
  */
-public class SJF implements Planificador {
+public class RandomPlanificador implements Planificador {
     private Cola colaListos;
     private Cola colaBloqueados;
     private Proceso procesoEjecutando;
-    private final Semaphore semaforoColas; // 🔐 SEMÁFORO NUEVO
+    private final Semaphore semaforoColas;
+    private final Random randomGenerator;
     
     // Métricas para threads
     private int cambiosContexto;
     private int ciclosTotales;
     private boolean soEjecutando;
-    private String nombre = "SJF";
+    private String nombre = "Random";
     
-    public SJF() {
+    public RandomPlanificador() {
         this.colaListos = new Cola();
         this.colaBloqueados = new Cola();
         this.procesoEjecutando = null;
-        this.semaforoColas = new Semaphore(1); // 🔐 INICIALIZAR SEMÁFORO
+        this.semaforoColas = new Semaphore(1);
+        this.randomGenerator = new Random();
         this.cambiosContexto = 0;
         this.ciclosTotales = 0;
         this.soEjecutando = false;
@@ -36,22 +40,32 @@ public class SJF implements Planificador {
     @Override
     public Proceso siguienteProceso() {
         try {
-            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            semaforoColas.acquire();
             
             soEjecutando = true;
             ciclosTotales++;
             
-            // Si hay proceso ejecutando y no ha terminado, lo mantenemos (SJF no apropiativo)
+            // Si hay proceso ejecutando y no ha terminado, 50% de probabilidad de cambiarlo
             if (procesoEjecutando != null && 
                 procesoEjecutando.getState() == Estado.EJECUTANDO &&
                 !procesoEjecutando.isFinished() && 
                 !procesoEjecutando.estaEnES()) {
                 
-                System.out.println("🔄 SJF mantiene en CPU: " + procesoEjecutando.getName() + 
-                                 " (" + procesoEjecutando.getTotalInstructions() + " inst)");
-                soEjecutando = false;
-                semaforoColas.release();
-                return procesoEjecutando;
+                // 🎲 50% de probabilidad de mantener el proceso actual
+                if (randomGenerator.nextBoolean()) {
+                    System.out.println("🎲 Random mantiene: " + procesoEjecutando.getName());
+                    soEjecutando = false;
+                    semaforoColas.release();
+                    return procesoEjecutando;
+                } else {
+                    System.out.println("🎲 Random decide cambiar de proceso");
+                    // Volver proceso actual a la cola
+                    procesoEjecutando.pausarEjecucion();
+                    procesoEjecutando.setState(Estado.LISTO);
+                    colaListos.encolar(procesoEjecutando);
+                    procesoEjecutando = null;
+                    cambiosContexto++;
+                }
             }
             
             procesoEjecutando = null;
@@ -62,28 +76,28 @@ public class SJF implements Planificador {
                 return null;
             }
             
-            // 🎯 SJF: Buscar el proceso con MENOR totalInstructions
-            Proceso procesoMasCorto = encontrarProcesoMasCorto();
+            // 🎯 RANDOM: Seleccionar proceso aleatorio de la cola
+            Proceso procesoAleatorio = seleccionarProcesoAleatorio();
             
-            if (procesoMasCorto != null && procesoMasCorto.getPc() < procesoMasCorto.getTotalInstructions()) {
-                procesoEjecutando = procesoMasCorto;
+            if (procesoAleatorio != null && procesoAleatorio.getPc() < procesoAleatorio.getTotalInstructions()) {
+                procesoEjecutando = procesoAleatorio;
                 procesoEjecutando.setState(Estado.EJECUTANDO);
-                eliminarProcesoDeCola(procesoMasCorto);
+                eliminarProcesoDeCola(procesoAleatorio);
                 
                 // 🧵 CONTROL DE THREADS
                 if (!procesoEjecutando.isEjecutando()) {
-                    procesoEjecutando.iniciarEjecucion(); // 🧵 INICIAR THREAD
+                    procesoEjecutando.iniciarEjecucion();
                 } else {
-                    procesoEjecutando.reanudarEjecucion(); // 🧵 REANUDAR THREAD
+                    procesoEjecutando.reanudarEjecucion();
                 }
                 
-                System.out.println("🎯 SJF selecciona (más corto): " + procesoEjecutando.getName() + 
-                                 " (" + procesoEjecutando.getTotalInstructions() + " inst)");
+                System.out.println("🎲 Random selecciona: " + procesoEjecutando.getName() + 
+                                 " (selección aleatoria)");
                 cambiosContexto++;
             }
             
             soEjecutando = false;
-            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            semaforoColas.release();
             return procesoEjecutando;
             
         } catch (InterruptedException e) {
@@ -93,36 +107,38 @@ public class SJF implements Planificador {
     }
     
     /**
-     * 🎯 Encuentra el proceso más corto (SJF)
+     * 🎯 Selecciona un proceso aleatorio de la cola
      */
-    private Proceso encontrarProcesoMasCorto() {
+    private Proceso seleccionarProcesoAleatorio() {
+        if (colaListos.estaVacia()) {
+            return null;
+        }
+        
+        int totalProcesos = colaListos.getTamano();
+        int indiceAleatorio = randomGenerator.nextInt(totalProcesos);
+        
         Cola temp = new Cola();
-        Proceso procesoMasCorto = null;
-        int minInstrucciones = Integer.MAX_VALUE;
+        Proceso procesoSeleccionado = null;
+        int contador = 0;
         
         while (!colaListos.estaVacia()) {
             Proceso actual = (Proceso) colaListos.desencolar();
             
-            // Solo considerar procesos que no hayan terminado
-            if (actual.getPc() < actual.getTotalInstructions()) {
-                if (procesoMasCorto == null || 
-                    actual.getTotalInstructions() < minInstrucciones) {
-                    procesoMasCorto = actual;
-                    minInstrucciones = actual.getTotalInstructions();
-                }
+            if (contador == indiceAleatorio) {
+                procesoSeleccionado = actual;
+            } else {
+                temp.encolar(actual);
             }
-            temp.encolar(actual);
+            contador++;
         }
         
-        // Restaurar la cola
         while (!temp.estaVacia()) {
             colaListos.encolar(temp.desencolar());
         }
         
-        return procesoMasCorto;
+        return procesoSeleccionado;
     }
     
-    // Método auxiliar para eliminar proceso específico de colaListos
     private void eliminarProcesoDeCola(Proceso proceso) {
         Cola temp = new Cola();
         while (!colaListos.estaVacia()) {
@@ -139,23 +155,21 @@ public class SJF implements Planificador {
     @Override
     public void agregarProceso(Proceso proceso) {
         try {
-            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            semaforoColas.acquire();
             
             if (proceso.getState() == Estado.NUEVO || proceso.getState() == Estado.LISTO) {
                 proceso.setState(Estado.LISTO);
                 colaListos.encolar(proceso);
                 
-                // 🧵 INICIAR THREAD DEL PROCESO (pero pausado inicialmente)
                 if (proceso.getState() == Estado.NUEVO) {
                     proceso.iniciarEjecucion();
-                    proceso.pausarEjecucion(); // Pausar hasta que SJF lo seleccione
+                    proceso.pausarEjecucion();
                 }
                 
-                System.out.println("📥 " + proceso.getName() + " agregado a SJF - " + 
-                                 proceso.getTotalInstructions() + " inst - Thread iniciado");
+                System.out.println("📥 " + proceso.getName() + " agregado a Random - Thread iniciado");
             }
             
-            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            semaforoColas.release();
             
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -165,35 +179,33 @@ public class SJF implements Planificador {
     @Override
     public void eliminarProceso(Proceso proceso) {
         try {
-            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            semaforoColas.acquire();
             
             if (procesoEjecutando == proceso) {
                 if (procesoEjecutando != null) {
-                    procesoEjecutando.detenerEjecucion(); // 🧵 DETENER THREAD
+                    procesoEjecutando.detenerEjecucion();
                 }
                 procesoEjecutando = null;
                 cambiosContexto++;
             }
             
-            // Eliminar de cola de listos
             eliminarProcesoDeCola(proceso);
             
-            // Eliminar de cola de bloqueados
             Cola temp = new Cola();
             while (!colaBloqueados.estaVacia()) {
                 Proceso actual = (Proceso) colaBloqueados.desencolar();
                 if (actual != proceso) {
                     temp.encolar(actual);
                 } else {
-                    actual.detenerEjecucion(); // 🧵 DETENER THREAD
-                    System.out.println("🗑️ " + actual.getName() + " removido de SJF - Thread detenido");
+                    actual.detenerEjecucion();
+                    System.out.println("🗑️ " + actual.getName() + " removido de Random - Thread detenido");
                 }
             }
             while (!temp.estaVacia()) {
                 colaBloqueados.encolar(temp.desencolar());
             }
             
-            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            semaforoColas.release();
             
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -203,30 +215,27 @@ public class SJF implements Planificador {
     @Override
     public void actualizarCiclo(int ciclo) {
         try {
-            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            semaforoColas.acquire();
             
-            // 1. Manejar proceso en ejecución
             if (procesoEjecutando != null && procesoEjecutando.getState() == Estado.EJECUTANDO) {
                 
-                // Verificar si terminó
                 if (procesoEjecutando.isFinished()) {
                     procesoEjecutando.setState(Estado.TERMINADO);
-                    procesoEjecutando.detenerEjecucion(); // 🧵 DETENER THREAD
-                    System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO (SJF)");
+                    procesoEjecutando.detenerEjecucion();
+                    System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO (Random)");
                     procesoEjecutando = null;
                     semaforoColas.release();
                     return;
                 }
                 
-                // Verificar si necesita E/S (basado en ciclos de excepción E/S)
                 if (procesoEjecutando.getPc() > 0 && 
                     procesoEjecutando.debeGenerarES() && 
                     !procesoEjecutando.estaEnES()) {
                     
                     procesoEjecutando.setState(Estado.BLOQUEADO);
-                    procesoEjecutando.pausarEjecucion(); // 🧵 PAUSAR THREAD
+                    procesoEjecutando.pausarEjecucion();
                     colaBloqueados.encolar(procesoEjecutando);
-                    System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S (SJF)");
+                    System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S (Random)");
                     procesoEjecutando = null;
                     cambiosContexto++;
                     semaforoColas.release();
@@ -234,27 +243,25 @@ public class SJF implements Planificador {
                 }
             }
             
-            // 2. Procesos bloqueados vuelven a lista de listos (simulación simple)
-            if (!colaBloqueados.estaVacia() && ciclo % 4 == 0) { // Cada 4 ciclos vuelve uno
+            if (!colaBloqueados.estaVacia() && ciclo % 4 == 0) {
                 Cola temp = new Cola();
                 while (!colaBloqueados.estaVacia()) {
                     Proceso bloqueado = (Proceso) colaBloqueados.desencolar();
                     if (!bloqueado.estaEnES()) {
                         bloqueado.setState(Estado.LISTO);
                         colaListos.encolar(bloqueado);
-                        System.out.println("🔄 " + bloqueado.getName() + " VUELVE de E/S a LISTO (SJF)");
-                        break; // Solo uno por ciclo
+                        System.out.println("🔄 " + bloqueado.getName() + " VUELVE de E/S a LISTO (Random)");
+                        break;
                     } else {
                         temp.encolar(bloqueado);
                     }
                 }
-                // Restaurar los que no volvieron
                 while (!temp.estaVacia()) {
                     colaBloqueados.encolar(temp.desencolar());
                 }
             }
             
-            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            semaforoColas.release();
             
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -264,9 +271,9 @@ public class SJF implements Planificador {
     @Override
     public boolean tieneProcesos() {
         try {
-            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            semaforoColas.acquire();
             boolean resultado = !colaListos.estaVacia() || !colaBloqueados.estaVacia() || procesoEjecutando != null;
-            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            semaforoColas.release();
             return resultado;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -279,25 +286,79 @@ public class SJF implements Planificador {
         return this.nombre;
     }
     
-    // 🔄 MÉTODOS NUEVOS PARA THREADS Y VISUALIZACIÓN
+    // 🔄 MÉTODOS REQUERIDOS POR LA INTERFAZ PLANIFICADOR
+    @Override
+    public Proceso seleccionarProximoProceso() {
+        return siguienteProceso();
+    }
     
-    /**
-     * 📊 Obtiene estado completo del planificador con threads
-     */
+    @Override
+    public String getNombreAlgoritmo() {
+        return getNombre();
+    }
+    
+    @Override
+    public void reorganizarColas() {
+        // Random no necesita reorganizar colas explícitamente
+    }
+    
+    @Override
+    public void procesoBloqueado(Proceso proceso) {
+        try {
+            semaforoColas.acquire();
+            
+            if (proceso != null && !proceso.isFinished()) {
+                proceso.pausarEjecucion();
+                proceso.setState(Estado.BLOQUEADO);
+                colaBloqueados.encolar(proceso);
+                
+                System.out.println("⏳ " + proceso.getName() + " bloqueado por E/S en Random");
+                
+                if (procesoEjecutando != null && procesoEjecutando.getId().equals(proceso.getId())) {
+                    procesoEjecutando = null;
+                    cambiosContexto++;
+                }
+            }
+            
+            semaforoColas.release();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+    
+    @Override
+    public void procesoVolvioDeES(Proceso proceso) {
+        agregarProceso(proceso);
+    }
+    
+    @Override
+    public String getEstadoColas() {
+        return getEstadoCompletoThreads();
+    }
+    
+    // 🔄 MÉTODOS DE VISUALIZACIÓN
     public String getEstadoCompletoThreads() {
         try {
             semaforoColas.acquire();
             
             StringBuilder sb = new StringBuilder();
             sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
-                procesoEjecutando.getName() + " (" + procesoEjecutando.getTotalInstructions() + " inst) [EJECUTANDO]" : "LIBRE").append("\n");
+                procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
             
             sb.append("📋 Cola Listos (").append(colaListos.getTamano()).append("): ");
             if (colaListos.estaVacia()) {
                 sb.append("Vacía");
             } else {
-                // Mostrar procesos en cola ordenados por longitud (SJF)
-                mostrarProcesosOrdenadosSJF(sb);
+                Cola temp = new Cola();
+                while (!colaListos.estaVacia()) {
+                    Proceso p = (Proceso) colaListos.desencolar();
+                    sb.append(p.getName()).append(" ");
+                    temp.encolar(p);
+                }
+                while (!temp.estaVacia()) {
+                    colaListos.encolar(temp.desencolar());
+                }
             }
             
             sb.append("\n⏳ Cola Bloqueados (").append(colaBloqueados.getTamano()).append("): ");
@@ -319,6 +380,7 @@ public class SJF implements Planificador {
             sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
             sb.append("\n🏃 Ejecutando: ").append(soEjecutando ? "SISTEMA OPERATIVO" : "PROCESO USUARIO");
             sb.append("\n🧵 Threads activos: ").append(contarThreadsActivos());
+            sb.append("\n🎲 Algoritmo: SELECCIÓN ALEATORIA");
             
             semaforoColas.release();
             return sb.toString();
@@ -329,46 +391,13 @@ public class SJF implements Planificador {
         }
     }
     
-    /**
-     * 📈 Muestra procesos ordenados por longitud ascendente (SJF)
-     */
-    private void mostrarProcesosOrdenadosSJF(StringBuilder sb) {
-        // Crear lista temporal para ordenar
-        Cola temp = new Cola();
-        java.util.ArrayList<Proceso> procesos = new java.util.ArrayList<>();
-        
-        while (!colaListos.estaVacia()) {
-            Proceso p = (Proceso) colaListos.desencolar();
-            procesos.add(p);
-            temp.encolar(p);
-        }
-        
-        // Ordenar por longitud ascendente (SJF)
-        procesos.sort((p1, p2) -> Integer.compare(p1.getTotalInstructions(), p2.getTotalInstructions()));
-        
-        // Mostrar ordenados
-        for (Proceso p : procesos) {
-            sb.append(p.getName()).append("(").append(p.getTotalInstructions()).append(") ");
-        }
-        
-        // Restaurar cola
-        while (!temp.estaVacia()) {
-            colaListos.encolar(temp.desencolar());
-        }
-    }
-    
-    /**
-     * 🔢 Cuenta threads activos para monitoreo
-     */
     private int contarThreadsActivos() {
         int activos = 0;
         if (procesoEjecutando != null && procesoEjecutando.isEjecutando()) {
             activos++;
         }
         
-        // Contar threads en cola de listos
         activos += contarThreadsEnCola(colaListos);
-        // Contar threads en cola de bloqueados  
         activos += contarThreadsEnCola(colaBloqueados);
         
         return activos;
@@ -386,43 +415,11 @@ public class SJF implements Planificador {
             temp.encolar(p);
         }
         
-        // Restaurar cola
         while (!temp.estaVacia()) {
             cola.encolar(temp.desencolar());
         }
         
         return activos;
-    }
-    
-    // 🔄 MÉTODOS REQUERIDOS POR LA INTERFAZ
-    @Override
-    public Proceso seleccionarProximoProceso() {
-        return siguienteProceso();
-    }
-    
-    @Override
-    public String getNombreAlgoritmo() {
-        return getNombre();
-    }
-    
-    @Override
-    public void reorganizarColas() {
-        // SJF no necesita reorganizar colas explícitamente
-    }
-    
-    @Override
-    public void procesoBloqueado(Proceso proceso) {
-        // Ya se maneja en actualizarCiclo()
-    }
-    
-    @Override
-    public void procesoVolvioDeES(Proceso proceso) {
-        // Ya se maneja en actualizarCiclo()
-    }
-    
-    @Override
-    public String getEstadoColas() {
-        return getEstadoCompletoThreads();
     }
     
     // 🔹 MÉTODOS PARA MONITOREO

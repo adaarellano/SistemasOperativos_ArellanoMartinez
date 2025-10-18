@@ -11,6 +11,7 @@ package sistemasoperativos_arellanomartinez.Simulador;
 public class Reloj {
     private static int currentCycle = 0;
     private static int cycleDurationMs = 100;
+    private static int initialCycleDurationMs = 100;
     
     public Reloj(int cycleDurationMs) {
         Reloj.cycleDurationMs = cycleDurationMs;
@@ -30,5 +31,22 @@ public class Reloj {
     
     public static void incrementCycle() {
         currentCycle++;
+    }
+    
+    // 🔄 MÉTODOS NUEVOS QUE FALTAN
+    public static void tick() {
+        currentCycle++;
+        System.out.println("⏰ Reloj avanzó a ciclo: " + currentCycle);
+    }
+    
+    public static void reset() {
+        currentCycle = 0;
+        cycleDurationMs = initialCycleDurationMs;
+        System.out.println("🔄 Reloj reiniciado a ciclo 0");
+    }
+    
+    public static void setCycleDurationMs(int duration) {
+        cycleDurationMs = duration;
+        System.out.println("⚙️ Duración del ciclo cambiada a: " + duration + "ms");
     }
 }

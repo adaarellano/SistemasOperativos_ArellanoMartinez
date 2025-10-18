@@ -13,8 +13,8 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
  * @author Indatech
  */
 public class PruebaFCFS {
-     public static void main(String[] args) {
-        System.out.println("🎯 SIMULADOR DE SISTEMA OPERATIVO - FCFS");
+    public static void main(String[] args) {
+        System.out.println("🎯 SIMULADOR DE SISTEMA OPERATIVO - FCFS CON THREADS");
         System.out.println("🔍 Prueba por Terminal con Reloj Integrado");
         System.out.println("⏰ Duración del ciclo: " + Reloj.getCycleDurationMs() + "ms");
         System.out.println("=" .repeat(60));
@@ -47,7 +47,7 @@ public class PruebaFCFS {
         planificador.agregarProceso(p2);
         planificador.agregarProceso(p3);
         
-        System.out.println("\n🚀 INICIANDO SIMULACIÓN FCFS");
+        System.out.println("\n🚀 INICIANDO SIMULACIÓN FCFS CON THREADS");
         System.out.println("=" .repeat(60));
         
         // 🔹 SIMULACIÓN POR 25 CICLOS MÁXIMO
@@ -55,7 +55,7 @@ public class PruebaFCFS {
             int cicloActual = Reloj.getCurrentCycle();
             System.out.println("\n⏰ === CICLO " + cicloActual + " ===");
             
-            // Obtener siguiente proceso a ejecutar
+            // Obtener siguiente proceso a ejecutar (esto maneja los threads automáticamente)
             Proceso procesoActual = planificador.siguienteProceso();
             
             if (procesoActual != null) {
@@ -63,57 +63,38 @@ public class PruebaFCFS {
                                  procesoActual.getName());
                 System.out.println("   📍 Estado: " + procesoActual.getState() + 
                                  " | PC: " + procesoActual.getPc() + "/" + 
-                                 procesoActual.getTotalInstructions());
+                                 procesoActual.getTotalInstructions() +
+                                 " | Thread: " + (procesoActual.isEjecutando() ? "ACTIVO" : "PAUSADO"));
                 
-                // 🔹 VERIFICAR SI GENERA E/S
-                if (procesoActual.debeGenerarES() && !procesoActual.estaEnES()) {
-                    System.out.println("   🔄 GENERANDO SOLICITUD E/S!");
-                    procesoActual.generarES();
-                    planificador.eliminarProceso(procesoActual); // Sacar de CPU
-                    planificador.agregarProceso(procesoActual);  // Volver a cola
-                    System.out.println("   ⏸️  " + procesoActual.getId() + " BLOQUEADO por E/S");
+                // 🔹 VERIFICAR SI GENERA E/S (esto ahora se maneja AUTOMÁTICAMENTE en el thread)
+                if (procesoActual.estaEnES()) {
+                    System.out.println("   💾 EN E/S - Tiempo restante: " + 
+                                     procesoActual.getTiempoESRestante() + " ciclos");
+                    // El thread del proceso maneja la E/S automáticamente
                 }
                 
-                // 🔹 PROCESAR E/S SI ESTÁ BLOQUEADO
-                else if (procesoActual.estaEnES()) {
-                    System.out.println("   💾 PROCESANDO E/S (" + 
-                                     procesoActual.getTiempoESRestante() + " ciclos restantes)");
-                    procesoActual.procesarCicloES();
-                    
-                    // Si terminó la E/S, volver a cola de listos
-                    if (!procesoActual.estaEnES() && !procesoActual.isFinished()) {
-                        procesoActual.setState(Proceso.Estado.LISTO);
-                        planificador.agregarProceso(procesoActual);
-                        System.out.println("   ✅ E/S COMPLETADA - Volviendo a cola");
-                    }
+                // 🔹 VERIFICAR SI TERMINÓ
+                if (procesoActual.isFinished()) {
+                    procesoActual.setTiempoFinalizacion(Reloj.getCurrentCycle());
+                    System.out.println("   🎉 " + procesoActual.getId() + " TERMINADO!");
+                    System.out.println("   ⏱️  Tiempo de retorno: " + 
+                                     procesoActual.getTiempoRetorno() + " ciclos");
                 }
                 
-                // 🔹 EJECUTAR INSTRUCCIÓN NORMAL
-                else if (!procesoActual.isFinished()) {
-                    procesoActual.ejecutarInstruccion();
-                    System.out.println("   ⚡ EJECUTANDO INSTRUCCIÓN → PC: " + 
-                                     procesoActual.getPc() + "/" + 
-                                     procesoActual.getTotalInstructions());
-                    
-                    // Verificar si terminó
-                    if (procesoActual.isFinished()) {
-                        procesoActual.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                        System.out.println("   🎉 " + procesoActual.getId() + " TERMINADO!");
-                        System.out.println("   ⏱️  Tiempo de retorno: " + 
-                                         procesoActual.getTiempoRetorno() + " ciclos");
-                    }
-                }
+                // 🚫 ELIMINADO: La llamada a ejecutarInstruccion() - lo hace el thread automáticamente
+                // 🚫 ELIMINADO: El manejo manual de E/S - lo hace el thread automáticamente
+                
             } else {
                 System.out.println("💤 CPU INACTIVA - No hay procesos listos");
             }
             
-            // 🔹 MOSTRAR ESTADO DEL SISTEMA
-            mostrarEstadoSistema(planificador, cicloActual);
+            // 🔹 MOSTRAR ESTADO DEL SISTEMA CON THREADS
+            mostrarEstadoSistemaThreads(planificador, cicloActual);
             
             // 🔹 AVANZAR EL RELOJ
             Reloj.tick();
             
-            // Pausa para visualización (usa la duración configurada del reloj)
+            // Pausa para visualización
             try { 
                 Thread.sleep(Reloj.getCycleDurationMs()); 
             } catch (InterruptedException e) {
@@ -127,22 +108,32 @@ public class PruebaFCFS {
         System.out.println("-".repeat(40));
         mostrarMetricasFinales(p1, p2, p3, Reloj.getCurrentCycle());
         
+        // 🔹 DETENER TODOS LOS THREADS
+        planificador.eliminarProceso(p1);
+        planificador.eliminarProceso(p2);
+        planificador.eliminarProceso(p3);
+        
+        System.out.println("🧵 TODOS LOS THREADS DETENIDOS");
+        
         // 🔹 RESETEAR RELOJ PARA FUTURAS PRUEBAS
         Reloj.reset();
     }
     
-    private static void mostrarEstadoSistema(FCFS planificador, int ciclo) {
-        System.out.println("📊 --- ESTADO DEL SISTEMA ---");
+    private static void mostrarEstadoSistemaThreads(FCFS planificador, int ciclo) {
+        System.out.println("📊 --- ESTADO DEL SISTEMA CON THREADS ---");
         System.out.println("   🕒 Ciclo: " + ciclo);
         System.out.println("   📋 Algoritmo: " + planificador.getNombre());
         
         Proceso enCPU = planificador.getProcesoEjecutando();
         System.out.println("   🖥️  Proceso en CPU: " + 
-                         (enCPU != null ? enCPU.getId() : "Ninguno"));
+                         (enCPU != null ? enCPU.getId() + " - " + enCPU.getName() : "Ninguno"));
         
         System.out.println("   📈 " + planificador.getEstadoCola());
         System.out.println("   🔄 Procesos activos: " + 
                          (planificador.tieneProcesos() ? "Sí" : "No"));
+        
+        // Mostrar estado de threads
+        System.out.println("   🧵 Estado threads: " + planificador.getEstadoCompletoThreads());
     }
     
     private static void mostrarMetricasFinales(Proceso p1, Proceso p2, Proceso p3, int ciclosTotales) {
@@ -156,6 +147,7 @@ public class PruebaFCFS {
             System.out.println("\n   " + p.getId() + " - " + p.getName() + ":");
             System.out.println("     📍 Estado: " + p.getState());
             System.out.println("     🔢 Progreso: " + p.getPc() + "/" + p.getTotalInstructions());
+            System.out.println("     🧵 Thread: " + (p.isEjecutando() ? "ACTIVO" : "INACTIVO"));
             
             if (p.isFinished()) {
                 completados++;

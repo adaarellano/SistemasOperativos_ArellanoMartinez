@@ -6,115 +6,121 @@ package sistemasoperativos_arellanomartinez.Planificador;
 import edd.ListaSimple;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 import sistemasoperativos_arellanomartinez.Simulador.Reloj;
+import sistemasoperativos_arellanomartinez.Simulador.Proceso.Estado;
+import java.util.concurrent.Semaphore;
 
-public class SRTF {
-    
+public class SRTF implements Planificador {
     private Proceso procesoActual;
     private ListaSimple listaProcesos;
+    private ListaSimple colaBloqueados;
+    private final Semaphore semaforoColas; // 🔐 SEMÁFORO NUEVO
+    
+    // Métricas para threads
+    private int cambiosContexto;
+    private int ciclosTotales;
+    private boolean soEjecutando;
     private final String nombreAlgoritmo;
     
     public SRTF() {
         this.listaProcesos = new ListaSimple();
+        this.colaBloqueados = new ListaSimple();
         this.procesoActual = null;
+        this.semaforoColas = new Semaphore(1); // 🔐 INICIALIZAR SEMÁFORO
+        this.cambiosContexto = 0;
+        this.ciclosTotales = 0;
+        this.soEjecutando = false;
         this.nombreAlgoritmo = "SRTF";
     }
     
-    /**
-     * Selecciona el próximo proceso a ejecutar según SRTF (Shortest Remaining Time First).
-     * Adaptado para trabajar con procesos que tienen hilos propios.
-     */
-    public Proceso seleccionarProximoProceso() {
-        // Buscar el proceso con menor tiempo RESTANTE
-        Proceso procesoMasCorto = encontrarProcesoMasCorto();
-        
-        if (procesoMasCorto == null) {
-            return null;
-        }
-        
-        // 🔄 MANEJO DE HILOS - SRTF APROPIATIVO
-        if (procesoActual != null && 
-            !procesoActual.getId().equals(procesoMasCorto.getId()) &&
-            !procesoActual.isFinished()) {
+    @Override
+    public Proceso siguienteProceso() {
+        try {
+            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
             
-            System.out.println("🔄 SRTF INTERRUMPE " + procesoActual.getName() + 
-                             " por " + procesoMasCorto.getName() +
-                             " (" + procesoActual.getInstruccionesRestantes() + 
-                             " vs " + procesoMasCorto.getInstruccionesRestantes() + " restantes)");
+            soEjecutando = true;
+            ciclosTotales++;
             
-            // ⏸️ Pausar el hilo del proceso actual
-            procesoActual.pausarEjecucion();
+            // 🎯 SRTF: Buscar el proceso con menor tiempo RESTANTE (apropiativo)
+            Proceso procesoMasCorto = encontrarProcesoMasCorto();
             
-            // Devolver el proceso interrumpido a la lista
-            procesoActual.setState(Proceso.Estado.LISTO);
-            listaProcesos.insertFinal(procesoActual);
-        }
-        
-        // Si el más corto no es el actual, removerlo de la lista
-        if (!procesoMasCorto.getId().equals((procesoActual != null ? procesoActual.getId() : null))) {
-            listaProcesos.remove(procesoMasCorto);
-        }
-        
-        // ▶️ Iniciar/Reanudar el hilo del nuevo proceso actual
-        procesoActual = procesoMasCorto;
-        
-        if (procesoActual.getState() == Proceso.Estado.LISTO || 
-            procesoActual.getState() == Proceso.Estado.SUS_LISTO) {
-            procesoActual.reanudarEjecucion();
-        } else {
-            procesoActual.iniciarEjecucion();
-        }
-        
-        // Registrar tiempo de inicio si es la primera vez
-        if (procesoActual.getTiempoInicioEjecucion() == -1) {
-            procesoActual.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
-        }
-        
-        System.out.println("🎯 SRTF ejecuta: " + procesoActual.getName() + 
-                         " (" + procesoActual.getInstruccionesRestantes() + " restantes)");
-        
-        return procesoActual;
-    }
-    
-    /**
-     * Agrega un proceso a la lista de listos.
-     * Inicia el hilo del proceso si es nuevo.
-     */
-    public void agregarProceso(Proceso proceso) {
-        if (!proceso.isFinished()) {
-            proceso.setState(Proceso.Estado.LISTO);
-            listaProcesos.insertFinal(proceso);
-            
-            // ▶️ Iniciar el hilo del proceso si está en estado NUEVO
-            if (proceso.getState() == Proceso.Estado.NUEVO) {
-                proceso.iniciarEjecucion();
-                proceso.pausarEjecucion(); // Lo pausamos hasta que sea seleccionado
+            if (procesoMasCorto == null) {
+                soEjecutando = false;
+                semaforoColas.release();
+                return null;
             }
             
-            System.out.println("✅ " + proceso.getName() + " agregado a SRTF" +
-                             " (" + proceso.getInstruccionesRestantes() + " restantes)");
+            // 🔄 MANEJO DE APROPIACIÓN - SRTF PUEDE INTERRUMPIR
+            if (procesoActual != null && 
+                !procesoActual.getId().equals(procesoMasCorto.getId()) &&
+                !procesoActual.isFinished()) {
+                
+                // ⏸️ Interrumpir proceso actual si hay uno más corto
+                procesoActual.pausarEjecucion(); // 🧵 PAUSAR THREAD
+                procesoActual.setState(Estado.LISTO);
+                listaProcesos.insertFinal(procesoActual);
+                
+                System.out.println("🔄 SRTF INTERRUMPE " + procesoActual.getName() + 
+                                 " (" + procesoActual.getInstruccionesRestantes() + " restantes)" +
+                                 " por " + procesoMasCorto.getName() + 
+                                 " (" + procesoMasCorto.getInstruccionesRestantes() + " restantes)");
+                cambiosContexto++;
+            }
+            
+            // Remover el proceso seleccionado de la lista
+            if (!procesoMasCorto.getId().equals((procesoActual != null ? procesoActual.getId() : null))) {
+                listaProcesos.remove(procesoMasCorto);
+            }
+            
+            // 🎯 Establecer nuevo proceso actual
+            procesoActual = procesoMasCorto;
+            
+            // 🧵 CONTROL DE THREADS
+            if (procesoActual.getState() == Estado.LISTO || procesoActual.getState() == Estado.SUS_LISTO) {
+                procesoActual.reanudarEjecucion(); // 🧵 REANUDAR THREAD
+            } else {
+                procesoActual.iniciarEjecucion(); // 🧵 INICIAR THREAD
+            }
+            
+            procesoActual.setState(Estado.EJECUTANDO);
+            
+            // Registrar tiempo de inicio si es la primera vez
+            if (procesoActual.getTiempoInicioEjecucion() == -1) {
+                procesoActual.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
+            }
+            
+            System.out.println("🎯 SRTF ejecuta: " + procesoActual.getName() + 
+                             " (" + procesoActual.getInstruccionesRestantes() + " restantes)");
+            cambiosContexto++;
+            
+            soEjecutando = false;
+            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            return procesoActual;
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
     }
     
     /**
-     * Encuentra el proceso con menos instrucciones restantes
-     * Considera tanto el proceso actual como los en lista
+     * 🎯 Encuentra el proceso con menos instrucciones restantes
      */
     private Proceso encontrarProcesoMasCorto() {
         Proceso masCorto = null;
         int minRestantes = Integer.MAX_VALUE;
         
         // Considerar el proceso actual si existe y no ha terminado
-        if (procesoActual != null && !procesoActual.isFinished()) {
+        if (procesoActual != null && !procesoActual.isFinished() && !procesoActual.estaEnES()) {
             masCorto = procesoActual;
             minRestantes = procesoActual.getInstruccionesRestantes();
         }
         
         // Buscar en la lista de procesos listos
-        int size = listaProcesos.getSize(); 
-        for (int i = 0; i < size; i++) {
-            Proceso p = (Proceso) listaProcesos.get(i); 
+        for (int i = 0; i < listaProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) listaProcesos.get(i);
             
-            if (p != null && !p.isFinished() && p.getInstruccionesRestantes() < minRestantes) {
+            if (p != null && !p.isFinished() && !p.estaEnES() && 
+                p.getInstruccionesRestantes() < minRestantes) {
                 minRestantes = p.getInstruccionesRestantes();
                 masCorto = p;
             }
@@ -123,87 +129,200 @@ public class SRTF {
         return masCorto;
     }
     
-    /**
-     * Maneja un proceso que se bloqueó por E/S.
-     * Pausa su hilo de ejecución.
-     */
-    public void procesoBloqueado(Proceso proceso) {
-        if (proceso != null && !proceso.isFinished()) {
-            // ⏸️ Pausar el hilo del proceso bloqueado
-            proceso.pausarEjecucion();
-            proceso.setState(Proceso.Estado.BLOQUEADO);
+    @Override
+    public void agregarProceso(Proceso proceso) {
+        try {
+            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
             
-            System.out.println("⏳ " + proceso.getName() + " bloqueado por E/S en SRTF");
-            
-            // Si el proceso bloqueado es el actual, limpiarlo
-            if (procesoActual != null && procesoActual.getId().equals(proceso.getId())) {
-                procesoActual = null;
+            if (!proceso.isFinished()) {
+                proceso.setState(Estado.LISTO);
+                listaProcesos.insertFinal(proceso);
+                
+                // 🧵 INICIAR THREAD DEL PROCESO (pero pausado inicialmente)
+                if (proceso.getState() == Estado.NUEVO) {
+                    proceso.iniciarEjecucion();
+                    proceso.pausarEjecucion(); // Pausar hasta que SRTF lo seleccione
+                }
+                
+                System.out.println("✅ " + proceso.getName() + " agregado a SRTF" +
+                                 " (" + proceso.getInstruccionesRestantes() + " restantes)");
             }
-        }
-    }
-    
-    /**
-     * Maneja un proceso que volvió de E/S (lo agrega a listos).
-     * El hilo permanece pausado hasta que sea seleccionado.
-     */
-    public void procesoVolvioDeES(Proceso proceso) {
-        if (proceso != null && !proceso.isFinished()) {
-            proceso.setState(Proceso.Estado.LISTO);
-            listaProcesos.insertFinal(proceso);
             
-            // El hilo sigue pausado hasta que SRTF lo seleccione
-            System.out.println("✅ " + proceso.getName() + " volvió de E/S a SRTF" +
-                             " (" + proceso.getInstruccionesRestantes() + " restantes)");
+            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
     
-    /**
-     * Ejecuta un ciclo del proceso actual
-     * En esta implementación con hilos, el proceso se ejecuta automáticamente
-     * cuando está en estado EJECUTANDO
-     */
-    public void ejecutarCiclo() {
-        if (procesoActual != null && procesoActual.getState() == Proceso.Estado.EJECUTANDO) {
-            // El proceso se ejecuta automáticamente en su hilo
-            // Solo verificamos si terminó
-            if (procesoActual.isFinished()) {
+    @Override
+    public void eliminarProceso(Proceso proceso) {
+        try {
+            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            
+            if (procesoActual != null && procesoActual.getId().equals(proceso.getId())) {
+                procesoActual.detenerEjecucion(); // 🧵 DETENER THREAD
+                procesoActual = null;
+                cambiosContexto++;
+            }
+            
+            // Remover de lista de procesos
+            listaProcesos.remove(proceso);
+            
+            // Remover de cola de bloqueados
+            colaBloqueados.remove(proceso);
+            
+            proceso.detenerEjecucion(); // 🧵 DETENER THREAD
+            
+            System.out.println("🗑️ " + proceso.getName() + " removido de SRTF");
+            
+            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+    
+    @Override
+    public void actualizarCiclo(int ciclo) {
+        try {
+            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            
+            // 1. Manejar proceso actual si terminó
+            if (procesoActual != null && procesoActual.isFinished()) {
+                procesoActual.detenerEjecucion(); // 🧵 DETENER THREAD
                 System.out.println("🎉 " + procesoActual.getName() + " terminó en SRTF");
                 procesoActual = null;
             }
+            
+            // 2. Procesos bloqueados vuelven a lista de listos
+            if (!colaBloqueados.isEmpty() && ciclo % 3 == 0) { // Cada 3 ciclos
+                for (int i = 0; i < colaBloqueados.sizeLista(); i++) {
+                    Proceso p = (Proceso) colaBloqueados.get(i);
+                    if (!p.estaEnES()) {
+                        colaBloqueados.remove(p);
+                        p.setState(Estado.LISTO);
+                        listaProcesos.insertFinal(p);
+                        System.out.println("✅ " + p.getName() + " volvió de E/S a SRTF");
+                        break; // Solo uno por ciclo
+                    }
+                }
+            }
+            
+            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+    }
+    
+    @Override
+    public boolean tieneProcesos() {
+        try {
+            semaforoColas.acquire(); // 🔐 ADQUIRIR SEMÁFORO
+            boolean resultado = !listaProcesos.isEmpty() || !colaBloqueados.isEmpty() || 
+                              (procesoActual != null && !procesoActual.isFinished());
+            semaforoColas.release(); // 🔐 LIBERAR SEMÁFORO
+            return resultado;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+    
+    @Override
+    public String getNombre() {
+        return this.nombreAlgoritmo;
+    }
+    
+    // 🔄 MÉTODOS ESPECÍFICOS DE SRTF (compatibilidad)
+    
+    /**
+     * Maneja un proceso que se bloqueó por E/S
+     */
+    public void procesoBloqueado(Proceso proceso) {
+        try {
+            semaforoColas.acquire();
+            
+            if (proceso != null && !proceso.isFinished()) {
+                proceso.pausarEjecucion(); // 🧵 PAUSAR THREAD
+                proceso.setState(Estado.BLOQUEADO);
+                colaBloqueados.insertFinal(proceso);
+                
+                System.out.println("⏳ " + proceso.getName() + " bloqueado por E/S en SRTF");
+                
+                // Si el proceso bloqueado es el actual, limpiarlo
+                if (procesoActual != null && procesoActual.getId().equals(proceso.getId())) {
+                    procesoActual = null;
+                    cambiosContexto++;
+                }
+            }
+            
+            semaforoColas.release();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+    
+    /**
+     * Maneja un proceso que volvió de E/S
+     */
+    public void procesoVolvioDeES(Proceso proceso) {
+        agregarProceso(proceso); // Reutilizar el método existente
     }
     
     /**
      * Limpia el proceso actual cuando termina
      */
     public void procesoTerminado(Proceso proceso) {
-        if (proceso != null && proceso.isFinished()) {
-            // ⏹️ Detener el hilo del proceso terminado
-            proceso.detenerEjecucion();
+        eliminarProceso(proceso); // Reutilizar el método existente
+    }
+    
+    // 🔄 MÉTODOS NUEVOS PARA VISUALIZACIÓN
+    
+    /**
+     * 📊 Obtiene estado completo del planificador con threads
+     */
+    public String getEstadoCompleto() {
+        try {
+            semaforoColas.acquire();
             
-            if (procesoActual != null && procesoActual.getId().equals(proceso.getId())) {
-                procesoActual = null;
-            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("🖥️  CPU: ").append(procesoActual != null ? 
+                procesoActual.getName() + " (" + procesoActual.getInstruccionesRestantes() + "R) [EJECUTANDO]" : "LIBRE").append("\n");
             
-            // Remover de la lista si está allí
-            listaProcesos.remove(proceso);
+            sb.append("📋 Lista Listos (").append(listaProcesos.sizeLista()).append("): ");
+            sb.append(getInfoLista(listaProcesos));
             
-            System.out.println("🏁 " + proceso.getName() + " removido de SRTF (terminado)");
+            sb.append("\n⏳ Cola Bloqueados (").append(colaBloqueados.sizeLista()).append("): ");
+            sb.append(getInfoLista(colaBloqueados));
+            
+            sb.append("\n🔀 Cambios contexto: ").append(cambiosContexto);
+            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
+            sb.append("\n🏃 Ejecutando: ").append(soEjecutando ? "SISTEMA OPERATIVO" : "PROCESO USUARIO");
+            sb.append("\n🧵 Threads activos: ").append(contarThreadsActivos());
+            
+            semaforoColas.release();
+            return sb.toString();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "Error al obtener estado";
         }
     }
     
     /**
-     * Obtiene información de la lista de procesos
+     * Obtiene información de una lista de procesos
      */
-    public String getInfoLista() {
-        if (listaProcesos.isEmpty()) {
-            return "Lista vacía";
+    private String getInfoLista(ListaSimple lista) {
+        if (lista.isEmpty()) {
+            return "Vacía";
         }
         
         StringBuilder sb = new StringBuilder();
-        int size = listaProcesos.getSize();
-        for (int i = 0; i < size; i++) {
-            Proceso p = (Proceso) listaProcesos.get(i);
+        for (int i = 0; i < lista.sizeLista(); i++) {
+            Proceso p = (Proceso) lista.get(i);
             sb.append(p.getName())
               .append("(").append(p.getInstruccionesRestantes()).append("R)")
               .append("[").append(p.getState()).append("] ");
@@ -212,54 +331,102 @@ public class SRTF {
     }
     
     /**
-     * Obtiene el estado completo del planificador
+     * 🔢 Cuenta threads activos para monitoreo
      */
-    public String getEstadoCompleto() {
-        String estadoActual = (procesoActual != null) ? 
-            procesoActual.getName() + "(" + procesoActual.getInstruccionesRestantes() + "R)" : "Ninguno";
+    private int contarThreadsActivos() {
+        int activos = 0;
         
-        return "CPU: " + estadoActual + " | Lista: " + getInfoLista();
+        if (procesoActual != null && procesoActual.isEjecutando()) {
+            activos++;
+        }
+        
+        // Contar en lista de procesos
+        activos += contarThreadsEnLista(listaProcesos);
+        // Contar en cola de bloqueados
+        activos += contarThreadsEnLista(colaBloqueados);
+        
+        return activos;
     }
     
-    // 🔹 GETTERS
+    private int contarThreadsEnLista(ListaSimple lista) {
+        int activos = 0;
+        for (int i = 0; i < lista.sizeLista(); i++) {
+            Proceso p = (Proceso) lista.get(i);
+            if (p.isEjecutando()) {
+                activos++;
+            }
+        }
+        return activos;
+    }
+    
+    // 🔄 MÉTODOS REQUERIDOS POR LA INTERFAZ
+    @Override
+    public Proceso seleccionarProximoProceso() {
+        return siguienteProceso();
+    }
+    
+    @Override
+    public String getNombreAlgoritmo() {
+        return getNombre();
+    }
+    
+    @Override
+    public void reorganizarColas() {
+        // SRTF se reorganiza automáticamente en cada selección
+    }
+    
+    @Override
+    public String getEstadoColas() {
+        return getEstadoCompleto();
+    }
+    
+    // 🔹 GETTERS ESPECÍFICOS
     public Proceso getProcesoActual() {
         return procesoActual;
     }
     
-    public String getNombreAlgoritmo() {
-        return nombreAlgoritmo;
-    }
-    
-    public boolean tieneProcesos() {
-        return !listaProcesos.isEmpty() || 
-               (procesoActual != null && !procesoActual.isFinished());
-    }
-    
-    /**
-     * Reorganiza las colas si es necesario
-     */
-    public void reorganizarColas() {
-        // SRTF se reorganiza automáticamente en cada selección
+    public String getInfoLista() {
+        return getInfoLista(listaProcesos);
     }
     
     /**
      * Limpia todos los procesos (para reinicio del sistema)
      */
     public void limpiar() {
-        // Detener todos los hilos
-        if (procesoActual != null) {
-            procesoActual.detenerEjecucion();
-            procesoActual = null;
-        }
-        
-        int size = listaProcesos.getSize();
-        for (int i = 0; i < size; i++) {
-            Proceso p = (Proceso) listaProcesos.get(i);
-            if (p != null) {
-                p.detenerEjecucion();
+        try {
+            semaforoColas.acquire();
+            
+            // Detener todos los threads
+            if (procesoActual != null) {
+                procesoActual.detenerEjecucion();
+                procesoActual = null;
             }
+            
+            // Detener threads en lista de procesos
+            for (int i = 0; i < listaProcesos.sizeLista(); i++) {
+                Proceso p = (Proceso) listaProcesos.get(i);
+                if (p != null) {
+                    p.detenerEjecucion();
+                }
+            }
+            
+            // Detener threads en cola de bloqueados
+            for (int i = 0; i < colaBloqueados.sizeLista(); i++) {
+                Proceso p = (Proceso) colaBloqueados.get(i);
+                if (p != null) {
+                    p.detenerEjecucion();
+                }
+            }
+            
+            listaProcesos = new ListaSimple();
+            colaBloqueados = new ListaSimple();
+            cambiosContexto = 0;
+            ciclosTotales = 0;
+            
+            semaforoColas.release();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        
-        listaProcesos = new ListaSimple();
     }
 }

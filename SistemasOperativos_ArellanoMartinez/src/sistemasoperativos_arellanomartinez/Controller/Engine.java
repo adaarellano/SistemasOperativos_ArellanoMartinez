@@ -502,30 +502,29 @@ public class Engine {
         }
     }
     
-    /**
-     * Cuenta procesos activos (no terminados)
-     */
-    public int contarProcesosActivos() {
-        int activos = 0;
-        try {
-            semaforoGlobal.acquire();
-            
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (!p.isFinished()) {
-                    activos++;
-                }
+ public int contarProcesosActivos() {
+    int activos = 0;
+    try {
+        semaforoGlobal.acquire();
+        
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (p != null && !p.isFinished()) {
+                // 🔥 SOLUCIÓN DEFINITIVA: Solo verificar si NO está terminado
+                // Los procesos suspendidos se consideran activos porque pueden reanudarse
+                activos++;
             }
-            
-            semaforoGlobal.release();
-            
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            semaforoGlobal.release();
         }
-        return activos;
+        
+        semaforoGlobal.release();
+        
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        semaforoGlobal.release();
     }
-    
+    return activos;
+}
+ 
     /**
      * Obtiene copia de los procesos (para la GUI)
      */

@@ -21,6 +21,10 @@ public class Reloj {
         return currentCycle;
     }
     
+     public static void inicializar(int cicloInicial) {
+        currentCycle = cicloInicial;
+    }
+    
     public static void setCurrentCycle(int cycle) {
         currentCycle = cycle;
     }

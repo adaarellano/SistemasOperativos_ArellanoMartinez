@@ -11,7 +11,7 @@ import java.util.concurrent.Semaphore;
 /**
  * First Come First Served - Planificación no apropiativa
  * Política: Una vez que un proceso toma la CPU, la mantiene hasta terminar
- * @author Day
+ * @author Ada
  */
 public class FCFS implements Planificador {
     private Cola colaListos;

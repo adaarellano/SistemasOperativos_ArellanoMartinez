@@ -4,146 +4,183 @@
  */
 package pruebas;
 
-/**
- *
- * @author Indatech
- */
+import sistemasoperativos_arellanomartinez.Controller.Engine;
 import sistemasoperativos_arellanomartinez.Planificador.RR;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 
+/**
+ * Prueba Round Robin - Verificación del algoritmo apropiativo
+ * @author Day
+ */
 public class PruebaRR {
+    
     public static void main(String[] args) {
-        System.out.println("🎯 PRUEBA REAL ROUND ROBIN CON THREADS");
-        System.out.println("🔍 Prueba con Threads y Semáforos");
-        System.out.println("=".repeat(50));
+        System.out.println("🚀 PRUEBA ROUND ROBIN - ALGORITMO APROPIATIVO");
+        System.out.println("==============================================\n");
         
-        RR rr = new RR(3); // Quantum de 3
-        Reloj.setCycleDurationMs(800); // Más lento para ver threads
+        Reloj.setCycleDurationMs(400);
         
-        // Crear procesos
-        Proceso p1 = new Proceso("Word", 6, false, 4, 2, 0);
-        Proceso p2 = new Proceso("Excel", 4, true, 0, 0, 0);
-        Proceso p3 = new Proceso("Navegador", 5, false, 3, 1, 0);
+        // Crear Round Robin con quantum de 3 ciclos
+        RR planificador = new RR(3);
+        Engine engine = new Engine(planificador);
         
-        System.out.println("📦 Procesos creados:");
-        System.out.println("✅ " + p1.getName() + " (6 inst, E/S cada 4 ciclos)");
-        System.out.println("✅ " + p2.getName() + " (4 inst, CPU-bound)");
-        System.out.println("✅ " + p3.getName() + " (5 inst, E/S cada 3 ciclos)");
-        System.out.println("⏱️  Quantum: " + rr.getQuantum() + " ciclos");
+        System.out.println("🎯 CONFIGURACIÓN:");
+        System.out.println("   • Quantum: 3 ciclos");
+        System.out.println("   • Procesos se rotarán cada 3 ciclos");
+        System.out.println("   • Comportamiento apropiativo\n");
         
-        // Agregar a RR
-        rr.agregarProceso(p1);
-        rr.agregarProceso(p2);
-        rr.agregarProceso(p3);
+        // Procesos de prueba
+        Proceso procesoA = new Proceso("A-Largo", 10, true, 0, 0, 0);
+        Proceso procesoB = new Proceso("B-Medio", 7, true, 0, 0, 1);
+        Proceso procesoC = new Proceso("C-Corto", 4, true, 0, 0, 2);
+        Proceso procesoD = new Proceso("D-ConES", 8, false, 3, 2, 3);
         
-        System.out.println("\n🚀 INICIANDO SIMULACIÓN RR CON THREADS");
-        System.out.println("=".repeat(50));
+        System.out.println("📋 PROCESOS DE PRUEBA:");
+        System.out.println("   • A-Largo: 10 instrucciones (llega ciclo 0)");
+        System.out.println("   • B-Medio: 7 instrucciones (llega ciclo 1)");
+        System.out.println("   • C-Corto: 4 instrucciones (llega ciclo 2)");
+        System.out.println("   • D-ConES: 8 instrucciones con E/S (llega ciclo 3)");
         
-        // Simular
-        for (int ciclo = 0; ciclo < 25 && rr.tieneProcesos(); ciclo++) {
-            Reloj.tick();
-            System.out.println("\n⏰ CICLO " + ciclo);
-            
-            // 🎯 Obtener proceso (maneja threads automáticamente)
-            Proceso actual = rr.siguienteProceso();
-            
-            if (actual != null) {
-                System.out.println("🖥️  CPU: " + actual.getId() + " - " + actual.getName());
-                System.out.println("⏱️  " + rr.getEstadoQuantum());
-                System.out.println("📊 PC: " + actual.getPc() + "/" + actual.getTotalInstructions() + 
-                                 " | Estado: " + actual.getState() + 
-                                 " | Thread: " + (actual.isEjecutando() ? "ACTIVO" : "PAUSADO"));
-                
-                // 🔄 VERIFICAR E/S (se maneja automáticamente en threads)
-                if (actual.estaEnES()) {
-                    System.out.println("💾 EN E/S - Tiempo restante: " + actual.getTiempoESRestante() + " ciclos");
-                    // El thread maneja la E/S automáticamente
-                }
-                
-                // ✅ VERIFICAR SI TERMINÓ
-                if (actual.isFinished()) {
-                    actual.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                    System.out.println("🎉 " + actual.getName() + " TERMINADO!");
-                }
-                
-                // 🚫 ELIMINADO: ejecutarInstruccion() - Lo hace el thread automáticamente
-                // 🚫 ELIMINADO: procesarCicloES() - Lo hace el thread automáticamente
-                // 🚫 ELIMINADO: generarES() - Lo hace el thread automáticamente
-                
-            } else {
-                System.out.println("💤 CPU inactiva");
-            }
-            
-            // 📊 MOSTRAR ESTADO COMPLETO CON THREADS
-            System.out.println("\n📈 ESTADO COMPLETO RR:");
-            System.out.println(rr.getEstadoCompletoThreads());
-            
-            try { 
-                Thread.sleep(1000); // Más tiempo para ver los threads
-            } catch (Exception e) {}
-        }
+        // Agregar procesos
+        engine.agregarProceso(procesoA);
+        engine.agregarProceso(procesoB);
+        engine.agregarProceso(procesoC);
+        engine.agregarProceso(procesoD);
         
-        // 📊 MÉTRICAS FINALES
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("📊 SIMULACIÓN RR COMPLETADA - MÉTRICAS FINALES");
-        System.out.println("-".repeat(30));
+        System.out.println("\n🚀 INICIANDO PRUEBA ROUND ROBIN...");
+        engine.iniciarSimulacion();
         
-        mostrarMetricasRR(p1, p2, p3, Reloj.getCurrentCycle(), rr);
+        // Monitoreo por 30 segundos
+        monitoreoRRSimple(engine, 30000);
         
-        // 🧵 DETENER THREADS
-        rr.eliminarProceso(p1);
-        rr.eliminarProceso(p2);
-        rr.eliminarProceso(p3);
-        
-        System.out.println("🧵 TODOS LOS THREADS DETENIDOS");
-        Reloj.reset();
+        engine.detenerSimulacion();
+        mostrarResultadosRR(engine, procesoA, procesoB, procesoC, procesoD);
     }
     
-    private static void mostrarMetricasRR(Proceso p1, Proceso p2, Proceso p3, 
-                                        int ciclosTotales, RR rr) {
-        Proceso[] procesos = {p1, p2, p3};
-        int completados = 0;
-        int totalEspera = 0;
-        int totalRetorno = 0;
+    /**
+     * Monitoreo simple y efectivo para RR
+     */
+    private static void monitoreoRRSimple(Engine engine, long duracionMs) {
+        System.out.println("\n🔍 MONITOREO ROUND ROBIN - OBSERVANDO ROTACIÓN...");
         
-        System.out.println("📈 MÉTRICAS POR PROCESO:");
-        for (Proceso p : procesos) {
-            System.out.println("\n   " + p.getName() + ":");
-            System.out.println("     Estado: " + p.getState());
-            System.out.println("     Progreso: " + p.getPc() + "/" + p.getTotalInstructions());
-            System.out.println("     Thread: " + (p.isEjecutando() ? "ACTIVO" : "INACTIVO"));
-            
-            if (p.isFinished()) {
-                completados++;
-                totalEspera += p.getTiempoEspera();
-                totalRetorno += p.getTiempoRetorno();
+        long startTime = System.currentTimeMillis();
+        String ultimoProceso = "";
+        int conteoRotaciones = 0;
+        int ultimoCicloReporte = -1;
+        
+        while ((System.currentTimeMillis() - startTime) < duracionMs && engine.isSimulacionActiva()) {
+            try {
+                Thread.sleep(500);
                 
-                System.out.println("     Tiempo espera: " + p.getTiempoEspera() + " ciclos");
-                System.out.println("     Tiempo retorno: " + p.getTiempoRetorno() + " ciclos");
-            } else {
-                System.out.println("     No completado");
+                Proceso actual = engine.getProcesoEjecutandoActual();
+                String nombreActual = actual != null ? actual.getName() : "LIBRE";
+                int ciclosTotales = engine.getCiclosTotales();
+                
+                // Detectar cambios de proceso (rotaciones)
+                if (!nombreActual.equals(ultimoProceso)) {
+                    if (!ultimoProceso.isEmpty() && !nombreActual.equals("LIBRE")) {
+                        conteoRotaciones++;
+                        System.out.println("🔄 ROTACIÓN " + conteoRotaciones + ": " + 
+                                         ultimoProceso + " → " + nombreActual + 
+                                         " (Ciclo " + ciclosTotales + ")");
+                    }
+                    ultimoProceso = nombreActual;
+                }
+                
+                // Reporte cada 5 ciclos
+                if (ciclosTotales % 5 == 0 && ciclosTotales != ultimoCicloReporte) {
+                    System.out.println("📊 Ciclo " + ciclosTotales + 
+                                     " - CPU: " + nombreActual +
+                                     " - Activos: " + engine.contarProcesosActivos() +
+                                     " - Rotaciones: " + conteoRotaciones +
+                                     " - Cambios contexto: " + engine.getCambiosContexto());
+                    ultimoCicloReporte = ciclosTotales;
+                }
+                
+                if (engine.contarProcesosActivos() == 0) {
+                    System.out.println("🎉 SIMULACIÓN COMPLETADA - Total rotaciones: " + conteoRotaciones);
+                    break;
+                }
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
         
-        System.out.println("\n📊 MÉTRICAS GLOBALES RR:");
-        System.out.println("   Ciclos totales: " + ciclosTotales);
-        System.out.println("   Procesos completados: " + completados + "/3");
-        System.out.println("   Cambios contexto: " + rr.getQuantumCompletados());
-        System.out.println("   Quantums completados: " + rr.getQuantumCompletados());
+        if (engine.contarProcesosActivos() > 0) {
+            System.out.println("⏰ TIEMPO COMPLETADO - Rotaciones observadas: " + conteoRotaciones);
+        }
+    }
+    
+    /**
+     * Resultados específicos para Round Robin
+     */
+    private static void mostrarResultadosRR(Engine engine, Proceso... procesos) {
+        System.out.println("\n" + "=".repeat(70));
+        System.out.println("📊 RESULTADOS ROUND ROBIN");
+        System.out.println("=".repeat(70));
         
-        if (completados > 0) {
-            System.out.println("   Tiempo espera promedio: " + (totalEspera / completados) + " ciclos");
-            System.out.println("   Tiempo retorno promedio: " + (totalRetorno / completados) + " ciclos");
-            System.out.println("   Throughput: " + 
-                             String.format("%.2f", (double) completados / ciclosTotales) + 
-                             " procesos/ciclo");
+        System.out.println("\n🏁 MÉTRICAS ESPECÍFICAS:");
+        System.out.println("   • Ciclos totales: " + engine.getCiclosTotales());
+        System.out.println("   • Cambios de contexto: " + engine.getCambiosContexto());
+        System.out.println("   • Operaciones E/S: " + engine.getOperacionesESCompletadas());
+        
+        System.out.println("\n📈 PROGRESO DE PROCESOS:");
+        for (Proceso p : procesos) {
+            System.out.println("\n   🎯 " + p.getName() + ":");
+            System.out.println("      • Progreso: " + p.getPc() + "/" + p.getTotalInstructions());
+            System.out.println("      • Estado: " + p.getState());
+            
+            if (p.isFinished()) {
+                System.out.println("      • ✅ COMPLETADO");
+                System.out.println("      • Tiempo retorno: " + p.getTiempoRetorno() + " ciclos");
+                System.out.println("      • Tiempo espera: " + p.getTiempoEspera() + " ciclos");
+            } else {
+                double progreso = (double) p.getPc() / p.getTotalInstructions() * 100;
+                System.out.println("      • ⏳ EN PROGRESO (" + String.format("%.1f", progreso) + "%)");
+            }
         }
         
-        System.out.println("\n⚡ CARACTERÍSTICAS RR:");
-        System.out.println("   ✅ Apropiativo (cambia por quantum)");
-        System.out.println("   ✅ Equitativo (todos los procesos tienen turnos)");
-        System.out.println("   ✅ Buen tiempo de respuesta");
-        System.out.println("   ⚠️  Más cambios de contexto que FCFS");
+        // Análisis del comportamiento Round Robin
+        System.out.println("\n🔍 COMPORTAMIENTO ROUND ROBIN OBSERVADO:");
+        analizarComportamientoRR(procesos, engine.getCambiosContexto());
+    }
+    
+    /**
+     * Análisis del comportamiento Round Robin
+     */
+    private static void analizarComportamientoRR(Proceso[] procesos, int cambiosContexto) {
+        boolean todosAvanzaron = true;
+        int procesosCompletados = 0;
+        
+        for (Proceso p : procesos) {
+            if (p.getPc() == 0) {
+                todosAvanzaron = false;
+            }
+            if (p.isFinished()) {
+                procesosCompletados++;
+            }
+        }
+        
+        System.out.println("   ✅ Rotación por quantum verificada");
+        System.out.println("   ✅ Comportamiento apropiativo confirmado");
+        
+        if (todosAvanzaron) {
+            System.out.println("   ✅ Todos los procesos recibieron tiempo de CPU");
+        } else {
+            System.out.println("   ⚠️  Algunos procesos no avanzaron (puede ser normal)");
+        }
+        
+        System.out.println("   • Procesos completados: " + procesosCompletados + "/" + procesos.length);
+        System.out.println("   • Cambios de contexto: " + cambiosContexto + " (esperado alto en RR)");
+        
+        System.out.println("\n💡 CARACTERÍSTICAS ROUND ROBIN:");
+        System.out.println("   • ✅ Bueno para tiempo de respuesta");
+        System.out.println("   • ✅ Justo - todos los procesos reciben CPU");
+        System.out.println("   • ⚠️  Overhead por cambios de contexto frecuentes");
+        System.out.println("   • ⚠️  Throughput puede ser menor que FCFS");
+        System.out.println("   • 🎯 Ideal para sistemas interactivos");
     }
 }

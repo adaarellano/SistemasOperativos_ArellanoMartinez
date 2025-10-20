@@ -4,7 +4,6 @@
  */
 package sistemasoperativos_arellanomartinez.Controller;
 
-
 import edd.ListaSimple;
 import sistemasoperativos_arellanomartinez.Planificador.Planificador;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
@@ -12,51 +11,52 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import java.util.concurrent.Semaphore;
 
 /**
- * Motor principal de simulación con semáforos mejorados
+ * Motor principal de simulacion con coordinacion mejorada
  */
 public class Engine {
-    // 🔹 COMPONENTES QUE COORDINA
+    // COMPONENTES QUE COORDINA
     private Planificador planificador;
     private ListaSimple todosProcesos;
     private volatile boolean simulacionActiva;
     private Thread hiloSimulacion;
+    private Proceso procesoEjecutandoActual;
     
-    // 🔐 SEMÁFOROS MEJORADOS
-    private final Semaphore semaforoGlobal;    // Exclusión mútua global
-    private final Semaphore semaforoES;        // Control de E/S simultáneas
-    private final Semaphore semaforoPlanificador; // Protección del planificador
+    // SEMAFOROS MEJORADOS
+    private final Semaphore semaforoGlobal;    // Exclusion mutua global
+    private final Semaphore semaforoES;        // Control de E/S simultaneas
+    private final Semaphore semaforoPlanificador; // Proteccion del planificador
     
-    // 🔹 MÉTRICAS GLOBALES
+    // METRICAS GLOBALES
     private int ciclosTotales;
     private int cambiosContexto;
     private int operacionesESCompletadas;
+    private int procesosSuspendidos;
     
     public Engine(Planificador planificador) {
         this.planificador = planificador;
         this.todosProcesos = new ListaSimple();
         this.simulacionActiva = false;
+        this.procesoEjecutandoActual = null;
         
-        // 🔐 INICIALIZAR SEMÁFOROS MEJORADOS
-        this.semaforoGlobal = new Semaphore(1);        // Exclusión mútua
-        this.semaforoES = new Semaphore(3);            // Máximo 3 E/S simultáneas
-        this.semaforoPlanificador = new Semaphore(1);  // Protección planificador
+        // INICIALIZAR SEMAFOROS MEJORADOS
+        this.semaforoGlobal = new Semaphore(1);        // Exclusion mutua
+        this.semaforoES = new Semaphore(3);            // Maximo 3 E/S simultaneas
+        this.semaforoPlanificador = new Semaphore(1);  // Proteccion planificador
         
         this.ciclosTotales = 0;
         this.cambiosContexto = 0;
         this.operacionesESCompletadas = 0;
+        this.procesosSuspendidos = 0;
         
-        System.out.println("🔧 SimulationEngine creado con 3 semáforos");
-        System.out.println("   - SemaforoGlobal: Exclusión mútua");
-        System.out.println("   - SemaforoES: 3 E/S simultáneas máximo");
-        System.out.println("   - SemaforoPlanificador: Protección planificador");
+        System.out.println("Engine creado con coordinacion mejorada");
     }
     
     /**
-     * 🎬 Inicia la simulación en un hilo separado
+     * Inicia la simulacion en un hilo separado
      */
     public void iniciarSimulacion() {
         if (simulacionActiva) {
-            System.out.println("⚠️  La simulación ya está activa");
+            System.out.println("La simulacion ya esta activa");
             return;
         }
         
@@ -65,134 +65,153 @@ public class Engine {
         hiloSimulacion.setName("Engine-Simulation-Thread");
         hiloSimulacion.start();
         
-        System.out.println("🚀 SimulationEngine iniciado con semáforos");
+        System.out.println("Engine iniciado con coordinacion mejorada");
     }
     
     /**
-     * 🔄 Ciclo principal de simulación con semáforos
+     * Ciclo principal de simulacion con coordinacion mejorada
      */
     private void ejecutarCicloSimulacion() {
-        System.out.println("🔄 Hilo de simulación iniciado");
+        System.out.println("Hilo de simulacion iniciado");
         
         while (simulacionActiva && !Thread.currentThread().isInterrupted()) {
             try {
-                // 🔐 ADQUIRIR SEMÁFORO GLOBAL
+                // ADQUIRIR SEMAFORO GLOBAL
                 semaforoGlobal.acquire();
                 
                 // 1. AVANZAR TIEMPO
                 Reloj.tick();
                 ciclosTotales++;
                 
-                // 2. EJECUTAR PLANIFICADOR CON SEMÁFORO ESPECÍFICO
-                ejecutarPlanificadorConSemaforo();
+                // 2. EJECUTAR PLANIFICADOR CON CONTROL DE EJECUCION
+                ejecutarPlanificadorConControl();
                 
-                // 3. CONTROLAR HILOS DE PROCESOS
-                controlarEjecucionProcesos();
+                // 3. MANEJAR OPERACIONES E/S
+                manejarOperacionesES();
                 
-                // 4. MANEJAR OPERACIONES E/S CON SEMÁFORO ESPECÍFICO
-                manejarOperacionesESConSemaforo();
-                
-                // 5. ACTUALIZAR MÉTRICAS CADA 5 CICLOS
+                // 4. ACTUALIZAR METRICAS CADA 5 CICLOS
                 if (ciclosTotales % 5 == 0) {
                     mostrarEstadoActual();
                 }
                 
-                // 🔐 LIBERAR SEMÁFORO GLOBAL
+                // LIBERAR SEMAFORO GLOBAL
                 semaforoGlobal.release();
                 
-                // 6. ESPERAR SEGÚN VELOCIDAD CONFIGURADA
+                // 5. ESPERAR SEGUN VELOCIDAD CONFIGURADA
                 Thread.sleep(Reloj.getCycleDurationMs());
                 
             } catch (InterruptedException e) {
-                System.out.println("⏹️  Hilo de simulación interrumpido");
-                liberarSemaforos(); // 🔐 LIBERAR TODOS LOS SEMÁFOROS
+                System.out.println("Hilo de simulacion interrumpido");
+                liberarSemaforos();
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                System.err.println("❌ Error en SimulationEngine: " + e.getMessage());
-                liberarSemaforos(); // 🔐 LIBERAR TODOS LOS SEMÁFOROS
+                System.err.println("Error en Engine: " + e.getMessage());
+                e.printStackTrace();
+                liberarSemaforos();
             }
         }
         
-        System.out.println("🛑 Hilo de simulación finalizado");
+        System.out.println("Hilo de simulacion finalizado");
     }
     
     /**
-     * 🔐 Ejecutar planificador con semáforo específico
+     * Ejecutar planificador con control de ejecucion mejorado
      */
-    private void ejecutarPlanificadorConSemaforo() {
+    private void ejecutarPlanificadorConControl() {
         try {
             semaforoPlanificador.acquire();
             
+            // 1. DETENER EJECUCION DE TODOS LOS PROCESOS
+            detenerEjecucionTodosProcesos();
+            
+            // 2. SELECCIONAR NUEVO PROCESO
             Proceso procesoSeleccionado = planificador.seleccionarProximoProceso();
             
-            if (procesoSeleccionado != null) {
-                // Verificar si hubo cambio de contexto
-                if (!procesoSeleccionado.isEjecutando() || 
-                    procesoSeleccionado.getState() != Proceso.Estado.EJECUTANDO) {
-                    cambiosContexto++;
-                }
-            }
-            
-            semaforoPlanificador.release();
-            
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            semaforoPlanificador.release();
-        }
-    }
-    
-    /**
-     * 🎮 Controla qué procesos ejecutan en sus hilos internos
-     */
-    private void controlarEjecucionProcesos() {
-        int procesosPausados = 0;
-        int procesosEjecutando = 0;
-        
-        try {
-            semaforoGlobal.acquire();
-            
-            // Recorrer todos los procesos
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso proceso = (Proceso) todosProcesos.get(i);
+            // 3. VERIFICAR SI HAY CAMBIO DE PROCESO
+            if (procesoSeleccionado != procesoEjecutandoActual) {
+                cambiosContexto++;
                 
-                // Solo procesos que no estén en E/S pueden ser pausados/ejecutados
-                if (!proceso.estaEnES()) {
-                    if (proceso.isEjecutando() && proceso.getState() == Proceso.Estado.EJECUTANDO) {
-                        procesosEjecutando++;
-                    } else if (proceso.isEjecutando() && proceso.getState() != Proceso.Estado.EJECUTANDO) {
-                        proceso.pausarEjecucion();
-                        procesosPausados++;
+                // Actualizar proceso actual
+                procesoEjecutandoActual = procesoSeleccionado;
+                
+                if (procesoEjecutandoActual != null) {
+                    // Registrar inicio de ejecucion (si es primera vez)
+                    if (procesoEjecutandoActual.getTiempoInicioEjecucion() == -1) {
+                        procesoEjecutandoActual.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                     }
+                    
+                    // 🔥 CAMBIO: Configurar estado y PERMITIR EJECUCION usando el nuevo método
+                    procesoEjecutandoActual.setState(Proceso.Estado.EJECUTANDO);
+                    procesoEjecutandoActual.reanudarEjecucion(); // <- NUEVO MÉTODO
+                    
+                    System.out.println("NUEVO proceso en CPU: " + procesoEjecutandoActual.getName());
+                } else {
+                    System.out.println("CPU LIBRE - No hay procesos para ejecutar");
                 }
+            } else if (procesoEjecutandoActual != null) {
+                // Mismo proceso, mantener ejecucion SOLO a este
+                procesoEjecutandoActual.reanudarEjecucion(); // <- NUEVO MÉTODO
             }
             
-            semaforoGlobal.release();
+            // 🔥 NUEVO: Asegurar que SOLO el proceso actual tiene permiso
+            asegurarUnSoloProcesoConPermiso();
+            
+            // 🔥 NUEVO: Ejecutar ciclo del proceso actual
+            if (procesoEjecutandoActual != null && 
+                procesoEjecutandoActual.getState() == Proceso.Estado.EJECUTANDO &&
+                !procesoEjecutandoActual.estaEnES() &&
+                !procesoEjecutandoActual.isSuspendido()) {
+                
+                procesoEjecutandoActual.permitirEjecutarCiclo(); // <- NUEVO MÉTODO
+            }
+            
+            semaforoPlanificador.release();
             
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            semaforoGlobal.release();
-        }
-        
-        if (procesosPausados > 0) {
-            System.out.println("⏸️  " + procesosPausados + " procesos pausados");
-        }
-        if (procesosEjecutando > 0) {
-            System.out.println("⚡ " + procesosEjecutando + " procesos ejecutando");
+            semaforoPlanificador.release();
         }
     }
     
     /**
-     * 🖨️ Maneja operaciones de E/S con semáforo específico
+     * 🔥 NUEVO: Asegura que solo el proceso actual tenga permiso de ejecucion
      */
-    private void manejarOperacionesESConSemaforo() {
+    private void asegurarUnSoloProcesoConPermiso() {
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso proceso = (Proceso) todosProcesos.get(i);
+            
+            // Si no es el proceso actual y NO está pausado, pausarlo
+            if (proceso != procesoEjecutandoActual && !proceso.isPausado()) {
+                proceso.pausarEjecucion();
+            }
+        }
+    }
+    
+    /**
+     * Detener ejecucion de todos los procesos (excepto el seleccionado)
+     */
+    private void detenerEjecucionTodosProcesos() {
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso proceso = (Proceso) todosProcesos.get(i);
+            
+            // No detener el proceso que va a ser ejecutado
+            if (proceso != procesoEjecutandoActual) {
+                proceso.pausarEjecucion(); // <- NUEVO MÉTODO
+            }
+        }
+    }
+    
+    /**
+     * Maneja operaciones de E/S con semaforo especifico
+     */
+    private void manejarOperacionesES() {
         try {
-            // 🔐 INTENTAR ADQUIRIR SEMÁFORO E/S (no bloqueante)
+            // INTENTAR ADQUIRIR SEMAFORO E/S (no bloqueante)
             if (semaforoES.tryAcquire()) {
                 int procesosEnES = 0;
                 int procesosVolvieronES = 0;
-                
-                semaforoGlobal.acquire();
+                int procesosEnESCompletados = 0;
                 
                 for (int i = 0; i < todosProcesos.sizeLista(); i++) {
                     Proceso proceso = (Proceso) todosProcesos.get(i);
@@ -200,92 +219,195 @@ public class Engine {
                     if (proceso.estaEnES()) {
                         procesosEnES++;
                         
-                        // 🧵 EL HILO E/S DEL PROCESO MANEJA LA E/S AUTOMÁTICAMENTE
-                        // Solo verificamos si terminó para notificar al planificador
+                        // Procesar ciclo de E/S
+                        proceso.procesarCicloES();
+                        
+                        // Verificar si termino E/S
                         if (!proceso.estaEnES() && !proceso.isFinished() && 
                             proceso.getState() == Proceso.Estado.LISTO) {
                             
-                            // ✅ PROCESO VOLVIÓ DE E/S - NOTIFICAR AL PLANIFICADOR
+                            // PROCESO VOLVIO DE E/S - NOTIFICAR AL PLANIFICADOR
                             planificador.procesoVolvioDeES(proceso);
                             procesosVolvieronES++;
                             operacionesESCompletadas++;
+                            procesosEnESCompletados++;
                             
-                            System.out.println("✅ " + proceso.getName() + " volvió de E/S al CPU original");
+                            System.out.println(proceso.getName() + " volvio de E/S");
                         }
                     }
                 }
                 
-                semaforoGlobal.release();
-                
-                // 🔐 LIBERAR SEMÁFORO E/S
+                // LIBERAR SEMAFORO E/S
                 semaforoES.release();
                 
                 if (procesosEnES > 0) {
-                    System.out.println("💾 " + procesosEnES + " procesos en E/S " +
-                                     "(Semáforo ES: " + semaforoES.availablePermits() + "/3 disponibles)");
-                }
-                if (procesosVolvieronES > 0) {
-                    System.out.println("🔄 " + procesosVolvieronES + " procesos volvieron de E/S");
+                    System.out.println("E/S: " + procesosEnES + " procesos en E/S, " + 
+                                     procesosEnESCompletados + " completados");
                 }
                 
             } else {
-                // No se pudo adquirir semáforo E/S - demasiadas E/S simultáneas
-                System.out.println("⚠️  Límite de E/S alcanzado (" + 
+                // No se pudo adquirir semaforo E/S - demasiadas E/S simultaneas
+                System.out.println("Limite de E/S alcanzado (" + 
                                  semaforoES.availablePermits() + "/3 disponibles)");
             }
             
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            liberarSemaforos();
         } catch (Exception e) {
-            System.err.println("❌ Error en manejo E/S: " + e.getMessage());
+            System.err.println("Error en manejo E/S: " + e.getMessage());
+            e.printStackTrace();
             liberarSemaforos();
         }
     }
     
     /**
-     * 📥 Agrega un proceso a la simulación con semáforos
+     * Agrega un proceso a la simulacion
      */
     public void agregarProceso(Proceso proceso) {
         try {
-            semaforoGlobal.acquire(); // 🔐 ADQUIRIR SEMÁFORO GLOBAL
-            semaforoPlanificador.acquire(); // 🔐 ADQUIRIR SEMÁFORO PLANIFICADOR
+            semaforoGlobal.acquire();
+            semaforoPlanificador.acquire();
             
             todosProcesos.insertFinal(proceso);
             planificador.agregarProceso(proceso);
             
-            semaforoPlanificador.release(); // 🔐 LIBERAR SEMÁFORO PLANIFICADOR
-            semaforoGlobal.release(); // 🔐 LIBERAR SEMÁFORO GLOBAL
+            // 🔥 CAMBIO: INICIAR THREAD DEL PROCESO (pero pausado inicialmente)
+            proceso.iniciarEjecucion(); // Ya inicia pausado por defecto
             
-            System.out.println("📥 Proceso agregado con semáforos: " + proceso.getName());
-            System.out.println("   🧵 Threads: " + proceso.getInfoThreads());
+            semaforoPlanificador.release();
+            semaforoGlobal.release();
+            
+            System.out.println("Proceso agregado: " + proceso.getName());
             
         } catch (InterruptedException e) {
-            System.out.println("❌ Interrupción al agregar proceso");
+            System.out.println("Interrupcion al agregar proceso");
             liberarSemaforos();
             Thread.currentThread().interrupt();
         }
     }
     
     /**
-     * ⏸️ Pausa la simulación completa
+     * Suspende un proceso especifico
+     */
+    public void suspenderProceso(Proceso proceso) {
+        try {
+            semaforoGlobal.acquire();
+            
+            if (!proceso.isSuspendido() && !proceso.isFinished()) {
+                proceso.suspender();
+                procesosSuspendidos++;
+                
+                // Si estaba ejecutando, seleccionar nuevo proceso
+                if (proceso == procesoEjecutandoActual) {
+                    procesoEjecutandoActual = null;
+                    cambiosContexto++;
+                }
+            }
+            
+            semaforoGlobal.release();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            semaforoGlobal.release();
+        }
+    }
+    
+    /**
+     * Reanuda un proceso suspendido
+     */
+    public void reanudarProceso(Proceso proceso) {
+        try {
+            semaforoGlobal.acquire();
+            
+            if (proceso.isSuspendido()) {
+                proceso.reanudar();
+                procesosSuspendidos--;
+            }
+            
+            semaforoGlobal.release();
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            semaforoGlobal.release();
+        }
+    }
+    
+    /**
+     * Suspende todos los procesos
+     */
+    public void suspenderTodosProcesos() {
+        try {
+            semaforoGlobal.acquire();
+            
+            int suspendidos = 0;
+            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+                Proceso proceso = (Proceso) todosProcesos.get(i);
+                if (!proceso.isSuspendido() && !proceso.isFinished()) {
+                    proceso.suspender();
+                    suspendidos++;
+                }
+            }
+            
+            procesosSuspendidos = suspendidos;
+            procesoEjecutandoActual = null;
+            
+            semaforoGlobal.release();
+            
+            System.out.println(suspendidos + " procesos suspendidos");
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            semaforoGlobal.release();
+        }
+    }
+    
+    /**
+     * Reanuda todos los procesos suspendidos
+     */
+    public void reanudarTodosProcesos() {
+        try {
+            semaforoGlobal.acquire();
+            
+            int reanudados = 0;
+            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+                Proceso proceso = (Proceso) todosProcesos.get(i);
+                if (proceso.isSuspendido()) {
+                    proceso.reanudar();
+                    reanudados++;
+                }
+            }
+            
+            procesosSuspendidos = 0;
+            
+            semaforoGlobal.release();
+            
+            System.out.println(reanudados + " procesos reanudados");
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            semaforoGlobal.release();
+        }
+    }
+    
+    /**
+     * Pausa la simulacion completa
      */
     public void pausarSimulacion() {
         simulacionActiva = false;
         int procesosPausados = 0;
         
-        System.out.println("⏸️  Pausando simulación...");
+        System.out.println("Pausando simulacion...");
         
         try {
             semaforoGlobal.acquire();
             
             for (int i = 0; i < todosProcesos.sizeLista(); i++) {
                 Proceso proceso = (Proceso) todosProcesos.get(i);
-                if (proceso.isEjecutando()) {
+                if (!proceso.isPausado()) {
                     proceso.pausarEjecucion();
                     procesosPausados++;
                 }
             }
+            
+            procesoEjecutandoActual = null;
             
             semaforoGlobal.release();
             
@@ -294,23 +416,23 @@ public class Engine {
             semaforoGlobal.release();
         }
         
-        System.out.println("⏸️  SimulationEngine pausado (" + procesosPausados + " procesos pausados)");
+        System.out.println("Simulacion pausada (" + procesosPausados + " procesos pausados)");
     }
     
     /**
-     * ▶️ Reanuda la simulación
+     * Reanuda la simulacion
      */
     public void reanudarSimulacion() {
-        System.out.println("▶️  Reanudando simulación...");
+        System.out.println("Reanudando simulacion...");
         simulacionActiva = true;
         iniciarSimulacion();
     }
     
     /**
-     * ⏹️ Detiene completamente la simulación
+     * Detiene completamente la simulacion
      */
     public void detenerSimulacion() {
-        System.out.println("🛑 Deteniendo simulación...");
+        System.out.println("Deteniendo simulacion...");
         simulacionActiva = false;
         
         if (hiloSimulacion != null && hiloSimulacion.isAlive()) {
@@ -323,9 +445,11 @@ public class Engine {
             
             for (int i = 0; i < todosProcesos.sizeLista(); i++) {
                 Proceso proceso = (Proceso) todosProcesos.get(i);
-                proceso.detenerEjecucion();
+                proceso.detenerCompletamente();
                 procesosDetenidos++;
             }
+            
+            procesoEjecutandoActual = null;
             
             semaforoGlobal.release();
             
@@ -334,41 +458,40 @@ public class Engine {
             semaforoGlobal.release();
         }
         
-        System.out.println("🛑 SimulationEngine detenido (" + procesosDetenidos + " procesos detenidos)");
+        System.out.println("Simulacion detenida (" + procesosDetenidos + " procesos detenidos)");
     }
     
     /**
-     * 🔐 Libera todos los semáforos (seguridad)
+     * Libera todos los semaforos (seguridad)
      */
     private void liberarSemaforos() {
         semaforoGlobal.release();
         semaforoES.release();
         semaforoPlanificador.release();
-        System.out.println("🔐 Todos los semáforos liberados");
     }
     
     /**
-     * 📊 Muestra estado actual de la simulación
+     * Muestra estado actual de la simulacion
      */
     private void mostrarEstadoActual() {
         try {
             semaforoGlobal.acquire();
             
-            System.out.println("\n📊 === CICLO " + ciclosTotales + " ===");
+            System.out.println("\n=== CICLO " + ciclosTotales + " ===");
             System.out.println("Algoritmo: " + planificador.getNombreAlgoritmo());
+            System.out.println("CPU: " + (procesoEjecutandoActual != null ? 
+                procesoEjecutandoActual.getName() : "LIBRE"));
             System.out.println("Procesos activos: " + contarProcesosActivos() + "/" + todosProcesos.sizeLista());
+            System.out.println("Procesos suspendidos: " + procesosSuspendidos);
             System.out.println("Cambios de contexto: " + cambiosContexto);
             System.out.println("Operaciones E/S completadas: " + operacionesESCompletadas);
             System.out.println("Velocidad: " + Reloj.getCycleDurationMs() + "ms/ciclo");
-            System.out.println("Semáforos - Global: " + semaforoGlobal.availablePermits() + 
-                             ", E/S: " + semaforoES.availablePermits() + 
-                             ", Planificador: " + semaforoPlanificador.availablePermits());
             
-            // Mostrar estado de threads
-            System.out.println("🧵 ESTADO DE THREADS:");
+            // Mostrar estado de procesos
+            System.out.println("ESTADO DE PROCESOS:");
             for (int i = 0; i < todosProcesos.sizeLista(); i++) {
                 Proceso p = (Proceso) todosProcesos.get(i);
-                System.out.println("   - " + p.getInfoThreads());
+                System.out.println("   - " + p.toString());
             }
             
             semaforoGlobal.release();
@@ -380,7 +503,7 @@ public class Engine {
     }
     
     /**
-     * 🔍 Cuenta procesos activos (no terminados)
+     * Cuenta procesos activos (no terminados)
      */
     public int contarProcesosActivos() {
         int activos = 0;
@@ -404,7 +527,7 @@ public class Engine {
     }
     
     /**
-     * 📋 Obtiene copia de los procesos (para la GUI)
+     * Obtiene copia de los procesos (para la GUI)
      */
     public ListaSimple getProcesos() {
         ListaSimple copia = new ListaSimple();
@@ -424,7 +547,7 @@ public class Engine {
         return copia;
     }
     
-    // 🔹 MÉTODOS DE CONSULTA
+    // METODOS DE CONSULTA
     public boolean isSimulacionActiva() {
         return simulacionActiva;
     }
@@ -441,17 +564,41 @@ public class Engine {
         return operacionesESCompletadas;
     }
     
+    public int getProcesosSuspendidos() {
+        return procesosSuspendidos;
+    }
+    
     public String getEstadoSimulacion() {
-        return simulacionActiva ? "Ejecutándose" : "Detenida";
+        return simulacionActiva ? "Ejecutandose" : "Detenida";
+    }
+    
+    public Proceso getProcesoEjecutandoActual() {
+        return procesoEjecutandoActual;
     }
     
     /**
-     * 📈 Obtiene información de semáforos
+     * Obtiene informacion de semaforos
      */
     public String getInfoSemaforos() {
         return String.format("Global: %d/1, E/S: %d/3, Planificador: %d/1",
             semaforoGlobal.availablePermits(),
             semaforoES.availablePermits(),
             semaforoPlanificador.availablePermits());
+    }
+    
+    /**
+     * Obtiene estadisticas completas de la simulacion
+     */
+    public String getEstadisticasCompletas() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ESTADISTICAS SIMULACION ===\n");
+        sb.append("Ciclos totales: ").append(ciclosTotales).append("\n");
+        sb.append("Cambios de contexto: ").append(cambiosContexto).append("\n");
+        sb.append("Operaciones E/S: ").append(operacionesESCompletadas).append("\n");
+        sb.append("Procesos suspendidos: ").append(procesosSuspendidos).append("\n");
+        sb.append("Procesos activos: ").append(contarProcesosActivos()).append("/").append(todosProcesos.sizeLista()).append("\n");
+        sb.append("Algoritmo: ").append(planificador.getNombreAlgoritmo()).append("\n");
+        
+        return sb.toString();
     }
 }

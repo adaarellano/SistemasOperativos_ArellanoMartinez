@@ -4,40 +4,45 @@
  */
 package sistemasoperativos_arellanomartinez.Simulador;
 
-/**
- * Clase que representa un proceso con capacidad de ejecución en hilos
- */
+import java.util.concurrent.Semaphore;
+
 public class Proceso {
     private static int nextId = 1;
     
-    // 🔹 IDENTIFICACIÓN
+    // IDENTIFICACIÓN
     private String id;
     private String name;
     
-    // 🔹 EJECUCIÓN E HILOS
+    // EJECUCIÓN
     private int totalInstructions;
     private int pc; // Program Counter
     private Estado state;
     private Thread hiloEjecucion;
-    private volatile boolean ejecutando; // Control de ejecución del hilo
+    private Thread hiloES;
+    private volatile boolean ejecutando;
     
-    // 🔹 TIPO DE PROCESO
+    // CONTROL DE EJECUCIÓN - SIMPLIFICADO
+    private final Semaphore semaforoControl; // Control principal
+    private volatile boolean pausado;
+    
+    // CAMPOS PARA SUSPENSIÓN
+    private boolean suspendido;
+    private Estado estadoAntesSuspension;
+    
+    // TIPO DE PROCESO
     private boolean isCpuBound;
     
-    // 🔹 GESTIÓN DE E/S (I/O Management)
+    // GESTIÓN DE E/S
     private int ciclosExcepcionES;
+    private int duracionES;
     private int tiempoESRestante;
     private int proximaExcepcionES;
     
-    // 🔹 MÉTRICAS DE PLANIFICACIÓN
+    // MÉTRICAS DE PLANIFICACIÓN
     private int tiempoLlegada;
     private int tiempoInicioEjecucion;
     private int tiempoFinalizacion;
     private int tiempoEjecucionTotal;
-    
-    // 🔹 SINCRONIZACIÓN
-    private final Object lock = new Object();
-    private boolean pausado = false;
     
     public enum Estado {
         NUEVO, LISTO, EJECUTANDO, BLOQUEADO, 
@@ -53,6 +58,7 @@ public class Proceso {
         this.state = Estado.NUEVO;
         this.isCpuBound = isCpuBound;
         this.ciclosExcepcionES = ciclosParaExcepcionES;
+        this.duracionES = duracionES;
         this.tiempoESRestante = 0;
         this.proximaExcepcionES = ciclosParaExcepcionES;
         this.tiempoLlegada = tiempoLlegada;
@@ -60,56 +66,87 @@ public class Proceso {
         this.tiempoFinalizacion = -1;
         this.tiempoEjecucionTotal = 0;
         this.ejecutando = false;
+        this.pausado = true; // Iniciar pausado
         
-        // Crear el hilo del proceso
-        crearHilo();
+        // SEMÁFORO SIMPLIFICADO
+        this.semaforoControl = new Semaphore(0);
+        
+        // INICIALIZAR CAMPOS DE SUSPENSIÓN
+        this.suspendido = false;
+        this.estadoAntesSuspension = null;
+        
+        // CREAR HILOS
+        crearHilos();
     }
     
     /**
-     * Crea el hilo de ejecución para este proceso
+     * Hilo principal de ejecución - VERSIÓN SIMPLIFICADA
      */
-    private void crearHilo() {
+    private void crearHilos() {
+        // Hilo principal de ejecución
         hiloEjecucion = new Thread(() -> {
-            System.out.println("🧵 Hilo creado para proceso: " + name);
+            System.out.println("Hilo ejecución creado para: " + name);
             
             while (!Thread.currentThread().isInterrupted() && !isFinished()) {
-                synchronized (lock) {
-                    while (pausado && !Thread.currentThread().isInterrupted()) {
-                        try {
-                            lock.wait();
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    }
-                }
-                
-                if (ejecutando && state == Estado.EJECUTANDO) {
-                    ejecutarCiclo();
-                }
-                
                 try {
-                    Thread.sleep(50); // Pequeña pausa para no saturar la CPU
+                    // Esperar permiso del Engine
+                    semaforoControl.acquire();
+                    
+                    // Verificar si realmente puede ejecutar
+                    if (state == Estado.EJECUTANDO && !estaEnES() && !suspendido && !pausado) {
+                        ejecutarCiclo();
+                    }
+                    
                 } catch (InterruptedException e) {
+                    System.out.println("Hilo ejecución interrumpido: " + name);
                     Thread.currentThread().interrupt();
                     break;
+                } catch (Exception e) {
+                    System.err.println("Error en hilo ejecución " + name + ": " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
-            
-            System.out.println("🧵 Hilo terminado para proceso: " + name);
+            System.out.println("Hilo ejecución FINALIZADO: " + name);
         });
         
-        hiloEjecucion.setName("Hilo-" + name);
+        hiloEjecucion.setName("Hilo-Ejecucion-" + name);
+        
+        // Hilo E/S
+        hiloES = new Thread(() -> {
+            System.out.println("Hilo E/S creado para: " + name);
+            
+            while (!Thread.currentThread().isInterrupted() && !isFinished()) {
+                try {
+                    Thread.sleep(Reloj.getCycleDurationMs());
+                    
+                    if (estaEnES() && !suspendido) {
+                        procesarCicloES();
+                    }
+                    
+                } catch (InterruptedException e) {
+                    System.out.println("Hilo E/S interrumpido: " + name);
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception e) {
+                    System.err.println("Error en hilo E/S " + name + ": " + e.getMessage());
+                }
+            }
+            System.out.println("Hilo E/S FINALIZADO: " + name);
+        });
+        
+        hiloES.setName("Hilo-ES-" + name);
     }
     
     /**
-     * Ejecuta un ciclo completo del proceso
+     * Ejecuta un ciclo de CPU
      */
     private void ejecutarCiclo() {
-        if (pc < totalInstructions && state == Estado.EJECUTANDO) {
+        if (pc < totalInstructions && !estaEnES() && !suspendido && !pausado) {
             // Ejecutar instrucción
             pc++;
             tiempoEjecucionTotal++;
+            
+            System.out.println(name + " ejecutó instrucción " + pc + "/" + totalInstructions);
             
             // Verificar si debe generar E/S
             if (debeGenerarES() && !estaEnES()) {
@@ -120,110 +157,134 @@ public class Proceso {
             if (pc >= totalInstructions) {
                 state = Estado.TERMINADO;
                 tiempoFinalizacion = Reloj.getCurrentCycle();
-                detenerEjecucion();
-                System.out.println("🎉 Proceso " + name + " terminó en hilo");
+                System.out.println(name + " TERMINADO - PC: " + pc + "/" + totalInstructions);
+                detenerCompletamente();
             }
             
-            // Pequeña pausa para simular tiempo de ejecución
             try {
-                Thread.sleep(Reloj.getCycleDurationMs());
+                Thread.sleep(Reloj.getCycleDurationMs() / 2);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
     }
     
+    // MÉTODOS DE CONTROL DEL ENGINE
+    
     /**
-     * Inicia la ejecución del proceso en su hilo
+     * El Engine da permiso para ejecutar UN ciclo
+     */
+    public void permitirEjecutarCiclo() {
+        if (!pausado && !suspendido && state == Estado.EJECUTANDO && !estaEnES()) {
+            semaforoControl.release(); // Permitir UN ciclo
+        }
+    }
+    
+    /**
+     * Inicia los hilos (pero pausados)
      */
     public void iniciarEjecucion() {
         if (hiloEjecucion.getState() == Thread.State.NEW) {
             hiloEjecucion.start();
         }
-        
-        synchronized (lock) {
-            ejecutando = true;
-            pausado = false;
-            state = Estado.EJECUTANDO;
-            lock.notifyAll();
+        if (hiloES.getState() == Thread.State.NEW) {
+            hiloES.start();
         }
         
-        if (tiempoInicioEjecucion == -1) {
-            tiempoInicioEjecucion = Reloj.getCurrentCycle();
-        }
+        ejecutando = true;
+        state = Estado.EJECUTANDO;
+        pausado = false;
         
-        System.out.println("▶️  Iniciando ejecución de " + name + " en hilo");
+        System.out.println("Proceso INICIADO: " + name);
     }
     
     /**
-     * Pausa la ejecución del proceso
+     * Pausa la ejecución
      */
     public void pausarEjecucion() {
-        synchronized (lock) {
-            ejecutando = false;
-            pausado = true;
-            if (state == Estado.EJECUTANDO) {
-                state = Estado.LISTO;
-            }
+        pausado = true;
+        if (state == Estado.EJECUTANDO) {
+            state = Estado.LISTO;
         }
-        System.out.println("⏸️  Pausando ejecución de " + name);
+        System.out.println("Proceso PAUSADO: " + name);
     }
     
     /**
-     * Detiene completamente la ejecución del proceso
+     * Reanuda la ejecución
      */
-    public void detenerEjecucion() {
-        synchronized (lock) {
-            ejecutando = false;
-            pausado = false;
-            if (state != Estado.TERMINADO) {
-                state = Estado.LISTO;
-            }
-        }
+    public void reanudarEjecucion() {
+        pausado = false;
+        state = Estado.EJECUTANDO;
+        System.out.println("Proceso REANUDADO: " + name);
+    }
+    
+    /**
+     * Detiene completamente el proceso
+     */
+    public void detenerCompletamente() {
+        ejecutando = false;
+        pausado = true;
         
         if (hiloEjecucion != null && hiloEjecucion.isAlive()) {
             hiloEjecucion.interrupt();
         }
-        System.out.println("⏹️  Deteniendo ejecución de " + name);
-    }
-    
-    /**
-     * Reanuda la ejecución del proceso
-     */
-    public void reanudarEjecucion() {
-        synchronized (lock) {
-            ejecutando = true;
-            pausado = false;
-            state = Estado.EJECUTANDO;
-            lock.notifyAll();
+        if (hiloES != null && hiloES.isAlive()) {
+            hiloES.interrupt();
         }
-        System.out.println("🔁 Reanudando ejecución de " + name);
+        
+        if (state != Estado.TERMINADO) {
+            state = Estado.LISTO;
+        }
+        
+        System.out.println("Proceso DETENIDO: " + name);
     }
     
-    // 🔹 MÉTODOS DE E/S (se mantienen iguales)
+    // MÉTODOS DE SUSPENSIÓN (mantener igual)
+    public void suspender() {
+        if (!suspendido && state != Estado.TERMINADO) {
+            estadoAntesSuspension = state;
+            state = (state == Estado.BLOQUEADO) ? Estado.SUS_BLOQUEADO : Estado.SUS_LISTO;
+            suspendido = true;
+            pausado = true;
+            System.out.println(name + " SUSPENDIDO");
+        }
+    }
+    
+    public void reanudar() {
+        if (suspendido && estadoAntesSuspension != null) {
+            state = estadoAntesSuspension;
+            suspendido = false;
+            estadoAntesSuspension = null;
+            pausado = false;
+            System.out.println(name + " REANUDADO");
+        }
+    }
+    
+    public boolean isSuspendido() {
+        return suspendido;
+    }
+    
+    // MÉTODOS DE E/S (mantener igual)
     public boolean debeGenerarES() {
         if (isCpuBound) return false;
         return pc >= proximaExcepcionES;
     }
     
     public void generarES() {
-        synchronized (lock) {
-            this.tiempoESRestante = ciclosExcepcionES;
-            this.proximaExcepcionES = pc + ciclosExcepcionES;
-            this.state = Estado.BLOQUEADO;
-            this.ejecutando = false;
-        }
-        System.out.println("🚨 " + name + " genera E/S - Bloqueado por " + tiempoESRestante + " ciclos");
+        this.tiempoESRestante = duracionES;
+        this.proximaExcepcionES = pc + ciclosExcepcionES;
+        this.state = Estado.BLOQUEADO;
+        this.pausado = true;
+        System.out.println(name + " GENERA E/S - Bloqueado por " + tiempoESRestante + " ciclos");
     }
     
     public void procesarCicloES() {
         if (tiempoESRestante > 0) {
             tiempoESRestante--;
             if (tiempoESRestante == 0) {
-                synchronized (lock) {
-                    state = Estado.LISTO;
-                }
-                System.out.println("✅ " + name + "E/S completada");
+                state = Estado.LISTO;
+                pausado = false;
+                System.out.println(name + " COMPLETÓ E/S - Estado: LISTO");
             }
         }
     }
@@ -232,7 +293,32 @@ public class Proceso {
         return tiempoESRestante > 0;
     }
     
-    // 🔹 MÉTODOS DE MÉTRICAS (se mantienen iguales)
+    // GETTERS Y SETTERS (simplificados - sin sincronización excesiva)
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public int getTotalInstructions() { return totalInstructions; }
+    public int getPc() { return pc; }
+    public Estado getState() { return state; }
+    public void setState(Estado state) { this.state = state; }
+    public boolean isCpuBound() { return isCpuBound; }
+    public int getTiempoESRestante() { return tiempoESRestante; }
+    public boolean isFinished() { return pc >= totalInstructions; }
+    public int getInstruccionesRestantes() { return totalInstructions - pc; }
+    public boolean isEjecutando() { return ejecutando && !pausado && !suspendido; }
+    public boolean isPausado() { return pausado; }
+    
+    // Setters y Getters para métricas
+    public void setTiempoInicioEjecucion(int tiempo) { this.tiempoInicioEjecucion = tiempo; }
+    public void setTiempoFinalizacion(int tiempo) { this.tiempoFinalizacion = tiempo; }
+    public void setTiempoLlegada(int tiempoLlegada) { this.tiempoLlegada = tiempoLlegada; }
+    
+    public int getTiempoInicioEjecucion() { return tiempoInicioEjecucion; }
+    public int getTiempoFinalizacion() { return tiempoFinalizacion; }
+    public int getTiempoLlegada() { return tiempoLlegada; }
+    public int getProximaExcepcionES() { return proximaExcepcionES; }
+    public int getDuracionES() { return duracionES; }
+    
+    // Métricas
     public int getTiempoEspera() {
         if (tiempoInicioEjecucion == -1) return 0;
         return tiempoInicioEjecucion - tiempoLlegada;
@@ -247,43 +333,14 @@ public class Proceso {
         return tiempoEjecucionTotal;
     }
     
-    // 🔹 GETTERS Y SETTERS (se mantienen iguales)
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public int getTotalInstructions() { return totalInstructions; }
-    public int getPc() { return pc; }
-    public void setPc(int pc) { this.pc = pc; }
-    public Estado getState() { return state; }
-    public void setState(Estado state) { 
-        synchronized (lock) {
-            this.state = state; 
-        }
-    }
-    public boolean isCpuBound() { return isCpuBound; }
-    public int getTiempoESRestante() { return tiempoESRestante; }
-    public boolean isFinished() { return pc >= totalInstructions; }
-    public int getInstruccionesRestantes() { return totalInstructions - pc; }
-    
-    // Setters para los nuevos campos
-    public void setTiempoInicioEjecucion(int tiempo) { this.tiempoInicioEjecucion = tiempo; }
-    public void setTiempoFinalizacion(int tiempo) { this.tiempoFinalizacion = tiempo; }
-    public void setTiempoLlegada(int tiempoLlegada) { this.tiempoLlegada = tiempoLlegada; }
-    
-    // Getters para los nuevos campos
-    public int getTiempoInicioEjecucion() { return tiempoInicioEjecucion; }
-    public int getTiempoFinalizacion() { return tiempoFinalizacion; }
-    public int getTiempoLlegada() { return tiempoLlegada; }
-    public int getProximaExcepcionES() { return proximaExcepcionES; }
-    
-    // Métodos para control del hilo
-    public boolean isEjecutando() { return ejecutando; }
-    public Thread getHiloEjecucion() { return hiloEjecucion; }
-    public boolean isPausado() { return pausado; }
-    
     @Override
     public String toString() {
-        return String.format("%s - %s (PC: %d/%d) [%s] [Hilo: %s]", 
-            id, name, pc, totalInstructions, state, 
-            (hiloEjecucion != null ? hiloEjecucion.getState() : "No creado"));
+        String estadoCompleto = state.toString();
+        if (suspendido) estadoCompleto += " [SUSPENDIDO]";
+        if (pausado) estadoCompleto += " [PAUSADO]";
+        
+        return String.format("%s - %s (PC: %d/%d) [%s] [E/S: %s]", 
+            id, name, pc, totalInstructions, estadoCompleto, 
+            estaEnES() ? tiempoESRestante + " ciclos" : "No");
     }
 }

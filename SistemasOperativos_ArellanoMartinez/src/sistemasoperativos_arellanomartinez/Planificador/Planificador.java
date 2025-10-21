@@ -8,48 +8,33 @@ import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 /**
  * Define el contrato que todos los algoritmos de planificación deben seguir. 
  * Esto permite cambiar dinámicamente entre diferentes políticas.
- * @author Indatech
+ * @author Ada y Day
  */
+
 public interface Planificador {
-    // 🔹 SELECCIÓN DEL SIGUIENTE PROCESO
-    Proceso siguienteProceso();
     
-    // 🔹 GESTIÓN DE COLAS
+    // MÉTODOS PRINCIPALES
+    Proceso seleccionarProximoProceso();
     void agregarProceso(Proceso proceso);
     void eliminarProceso(Proceso proceso);
+    void procesoVolvioDeES(Proceso proceso);
+    void procesoBloqueado(Proceso proceso);
     
-    // 🔹 SINCRONIZACIÓN CON RELOJ
-    void actualizarCiclo(int ciclo);
-    
-    // 🔹 CONTROL DE ESTADO
+    // MÉTODOS DE CONSULTA
+    String getNombreAlgoritmo();
+    String getEstadoColas();
     boolean tieneProcesos();
-    String getNombre();
     
-    // 🔥 NUEVOS MÉTODOS REQUERIDOS POR SIMULATIONENGINE
-    // 🔹 PARA COMPATIBILIDAD CON SIMULATIONENGINE
-    default Proceso seleccionarProximoProceso() {
-        return siguienteProceso();  // Método alias para compatibilidad
+    // MÉTODOS DE CICLO
+    void actualizarCiclo(int ciclo);
+    void reorganizarColas();
+    
+    // MÉTODO OPCIONAL - para compatibilidad
+    default Proceso siguienteProceso() {
+        return seleccionarProximoProceso();
     }
     
-    default String getNombreAlgoritmo() {
-        return getNombre();  // Método alias para compatibilidad
-    }
-    
-    // 🔹 MÉTODOS NUEVOS PARA GESTIÓN AVANZADA
-    void reorganizarColas();  // Para algoritmos que necesitan reordenar
-    
-    // 🔹 PARA MANEJO DE E/S (opcional - algunos algoritmos pueden no implementarlo)
-    default void procesoBloqueado(Proceso proceso) {
-        // Implementación por defecto vacía
-    }
-    
-    default void procesoVolvioDeES(Proceso proceso) {
-        // Implementación por defecto vacía
-        agregarProceso(proceso);  // Por defecto, volver a agregar a la cola
-    }
-    
-    // 🔹 PARA OBTENER INFORMACIÓN DE DEBUGGING
-    default String getEstadoColas() {
-        return "Información no disponible";
+    default String getNombre() {
+        return getNombreAlgoritmo();
     }
 }

@@ -3,185 +3,273 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package pruebas;
+
+import sistemasoperativos_arellanomartinez.Controller.Engine;
 import sistemasoperativos_arellanomartinez.Planificador.FCFS;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 
-
 /**
- *
- * @author Indatech
+ * Prueba exhaustiva del algoritmo FCFS
  */
 public class PruebaFCFS {
-     public static void main(String[] args) {
-        System.out.println("🎯 SIMULADOR DE SISTEMA OPERATIVO - FCFS");
-        System.out.println("🔍 Prueba por Terminal con Reloj Integrado");
-        System.out.println("⏰ Duración del ciclo: " + Reloj.getCycleDurationMs() + "ms");
-        System.out.println("=" .repeat(60));
+    
+    public static void main(String[] args) {
+        System.out.println("🚀 INICIANDO PRUEBA FCFS COMPLETA");
+        System.out.println("=================================\n");
         
-        // 🔹 CREAR PLANIFICADOR FCFS
+        // Configurar velocidad de simulación
+        Reloj.setCycleDurationMs(500); // 500ms por ciclo para mejor visualización
+        
+        // Crear planificador FCFS
         FCFS planificador = new FCFS();
+        Engine engine = new Engine(planificador);
         
-        // 🔹 CREAR PROCESOS DE PRUEBA
-        System.out.println("\n📦 CREANDO PROCESOS:");
-        System.out.println("-".repeat(40));
+        // 🔹 PRIMERA PRUEBA: Proceso simple
+        System.out.println("\n📋 PRUEBA 1: Proceso único sin E/S");
+        pruebaProcesoSinES(engine);
         
-        // Proceso 1: Editor de texto (I/O-bound, hace E/S cada 2 ciclos)
-        Proceso p1 = new Proceso("EditorTexto", 6, false, 2, 2, 0);
+        // Esperar entre pruebas
+        try { Thread.sleep(2000); } catch (InterruptedException e) {}
         
-        // Proceso 2: Calculadora (CPU-bound, sin E/S)
-        Proceso p2 = new Proceso("Calculadora", 4, true, 0, 0, 1);
+        // 🔹 SEGUNDA PRUEBA: Múltiples procesos
+        System.out.println("\n📋 PRUEBA 2: Múltiples procesos con E/S");
+        pruebaMultiplesProcesos(engine);
         
-        // Proceso 3: Navegador (I/O-bound, hace E/S cada 3 ciclos)
-        Proceso p3 = new Proceso("NavegadorWeb", 5, false, 3, 1, 2);
+        // 🔹 TERCERA PRUEBA: Procesos CPU-bound vs I/O-bound
+        System.out.println("\n📋 PRUEBA 3: Mezcla de CPU-bound e I/O-bound");
+        pruebaMezclaProcesos(engine);
         
-        System.out.println("✅ " + p1.getId() + " - " + p1.getName() + 
-                         " (I/O-bound, E/S cada 2 ciclos)");
-        System.out.println("✅ " + p2.getId() + " - " + p2.getName() + 
-                         " (CPU-bound, sin E/S)");
-        System.out.println("✅ " + p3.getId() + " - " + p3.getName() + 
-                         " (I/O-bound, E/S cada 3 ciclos)");
+        System.out.println("\n✅ TODAS LAS PRUEBAS FCFS COMPLETADAS");
+    }
+    
+    /**
+     * PRUEBA 1: Proceso simple sin E/S
+     */
+    private static void pruebaProcesoSinES(Engine engine) {
+        System.out.println("🎯 Creando proceso 'Editor' (CPU-bound, 5 instrucciones)");
         
-        // 🔹 AGREGAR PROCESOS AL PLANIFICADOR
-        planificador.agregarProceso(p1);
-        planificador.agregarProceso(p2);
-        planificador.agregarProceso(p3);
+        Proceso editor = new Proceso(
+            "Editor",           // nombre
+            5,                  // total instrucciones
+            true,               // CPU-bound (sin E/S)
+            0,                  // ciclos para excepción E/S
+            0,                  // duración E/S
+            0                   // tiempo llegada
+        );
         
-        System.out.println("\n🚀 INICIANDO SIMULACIÓN FCFS");
-        System.out.println("=" .repeat(60));
+        engine.agregarProceso(editor);
+        engine.iniciarSimulacion();
         
-        // 🔹 SIMULACIÓN POR 25 CICLOS MÁXIMO
-        while (Reloj.getCurrentCycle() < 25 && planificador.tieneProcesos()) {
-            int cicloActual = Reloj.getCurrentCycle();
-            System.out.println("\n⏰ === CICLO " + cicloActual + " ===");
-            
-            // Obtener siguiente proceso a ejecutar
-            Proceso procesoActual = planificador.siguienteProceso();
-            
-            if (procesoActual != null) {
-                System.out.println("🖥️  CPU: " + procesoActual.getId() + " - " + 
-                                 procesoActual.getName());
-                System.out.println("   📍 Estado: " + procesoActual.getState() + 
-                                 " | PC: " + procesoActual.getPc() + "/" + 
-                                 procesoActual.getTotalInstructions());
+        // Esperar a que termine la simulación
+        esperarTerminacion(engine, 10000);
+        engine.detenerSimulacion();
+        
+        mostrarMetricasProceso(editor, "Editor");
+    }
+    
+    /**
+     * PRUEBA 2: Múltiples procesos con E/S
+     */
+    private static void pruebaMultiplesProcesos(Engine engine) {
+        System.out.println("🎯 Creando 3 procesos con diferentes características:");
+        
+        // Proceso 1: Navegador (I/O-bound)
+        Proceso navegador = new Proceso(
+            "Navegador",        // nombre
+            8,                  // total instrucciones
+            false,              // I/O-bound
+            3,                  // cada 3 ciclos genera E/S
+            2,                  // E/S dura 2 ciclos
+            0                   // tiempo llegada
+        );
+        
+        // Proceso 2: Compilador (CPU-bound)
+        Proceso compilador = new Proceso(
+            "Compilador",       // nombre
+            6,                  // total instrucciones
+            true,               // CPU-bound
+            0,                  // sin E/S
+            0,                  // sin E/S
+            1                   // llega en ciclo 1
+        );
+        
+        // Proceso 3: Reproductor (I/O-bound)
+        Proceso reproductor = new Proceso(
+            "Reproductor",      // nombre
+            10,                 // total instrucciones
+            false,              // I/O-bound
+            4,                  // cada 4 ciclos genera E/S
+            1,                  // E/S dura 1 ciclo
+            2                   // llega en ciclo 2
+        );
+        
+        engine.agregarProceso(navegador);
+        
+        // Iniciar simulación y agregar procesos en diferentes momentos
+        engine.iniciarSimulacion();
+        
+        // Agregar compilador después de 3 ciclos
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500); // 3 ciclos * 500ms
+                System.out.println("\n⏰ Agregando Compilador en ciclo 3...");
+                engine.agregarProceso(compilador);
                 
-                // 🔹 VERIFICAR SI GENERA E/S
-                if (procesoActual.debeGenerarES() && !procesoActual.estaEnES()) {
-                    System.out.println("   🔄 GENERANDO SOLICITUD E/S!");
-                    procesoActual.generarES();
-                    planificador.eliminarProceso(procesoActual); // Sacar de CPU
-                    planificador.agregarProceso(procesoActual);  // Volver a cola
-                    System.out.println("   ⏸️  " + procesoActual.getId() + " BLOQUEADO por E/S");
-                }
+                Thread.sleep(1000); // 2 ciclos más
+                System.out.println("⏰ Agregando Reproductor en ciclo 5...");
+                engine.agregarProceso(reproductor);
                 
-                // 🔹 PROCESAR E/S SI ESTÁ BLOQUEADO
-                else if (procesoActual.estaEnES()) {
-                    System.out.println("   💾 PROCESANDO E/S (" + 
-                                     procesoActual.getTiempoESRestante() + " ciclos restantes)");
-                    procesoActual.procesarCicloES();
-                    
-                    // Si terminó la E/S, volver a cola de listos
-                    if (!procesoActual.estaEnES() && !procesoActual.isFinished()) {
-                        procesoActual.setState(Proceso.Estado.LISTO);
-                        planificador.agregarProceso(procesoActual);
-                        System.out.println("   ✅ E/S COMPLETADA - Volviendo a cola");
-                    }
-                }
-                
-                // 🔹 EJECUTAR INSTRUCCIÓN NORMAL
-                else if (!procesoActual.isFinished()) {
-                    procesoActual.ejecutarInstruccion();
-                    System.out.println("   ⚡ EJECUTANDO INSTRUCCIÓN → PC: " + 
-                                     procesoActual.getPc() + "/" + 
-                                     procesoActual.getTotalInstructions());
-                    
-                    // Verificar si terminó
-                    if (procesoActual.isFinished()) {
-                        procesoActual.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                        System.out.println("   🎉 " + procesoActual.getId() + " TERMINADO!");
-                        System.out.println("   ⏱️  Tiempo de retorno: " + 
-                                         procesoActual.getTiempoRetorno() + " ciclos");
-                    }
-                }
-            } else {
-                System.out.println("💤 CPU INACTIVA - No hay procesos listos");
-            }
-            
-            // 🔹 MOSTRAR ESTADO DEL SISTEMA
-            mostrarEstadoSistema(planificador, cicloActual);
-            
-            // 🔹 AVANZAR EL RELOJ
-            Reloj.tick();
-            
-            // Pausa para visualización (usa la duración configurada del reloj)
-            try { 
-                Thread.sleep(Reloj.getCycleDurationMs()); 
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Thread.currentThread().interrupt();
             }
-        }
+        }).start();
         
-        // 🔹 MOSTRAR MÉTRICAS FINALES
-        System.out.println("\n" + "=" .repeat(60));
-        System.out.println("📊 SIMULACIÓN COMPLETADA - MÉTRICAS FINALES");
-        System.out.println("-".repeat(40));
-        mostrarMetricasFinales(p1, p2, p3, Reloj.getCurrentCycle());
+        // Esperar a que terminen todos los procesos
+        esperarTerminacionMultiples(engine, 20000);
+        engine.detenerSimulacion();
         
-        // 🔹 RESETEAR RELOJ PARA FUTURAS PRUEBAS
-        Reloj.reset();
+        // Mostrar métricas de todos los procesos
+        System.out.println("\n📊 MÉTRICAS FINALES - PRUEBA 2:");
+        mostrarMetricasProceso(navegador, "Navegador");
+        mostrarMetricasProceso(compilador, "Compilador");
+        mostrarMetricasProceso(reproductor, "Reproductor");
+        
+        mostrarMetricasEngine(engine);
     }
     
-    private static void mostrarEstadoSistema(FCFS planificador, int ciclo) {
-        System.out.println("📊 --- ESTADO DEL SISTEMA ---");
-        System.out.println("   🕒 Ciclo: " + ciclo);
-        System.out.println("   📋 Algoritmo: " + planificador.getNombre());
+    /**
+     * PRUEBA 3: Mezcla de procesos CPU-bound e I/O-bound
+     */
+    private static void pruebaMezclaProcesos(Engine engine) {
+        System.out.println("🎯 Creando mezcla de procesos:");
         
-        Proceso enCPU = planificador.getProcesoEjecutando();
-        System.out.println("   🖥️  Proceso en CPU: " + 
-                         (enCPU != null ? enCPU.getId() : "Ninguno"));
+        // Proceso CPU-bound largo
+        Proceso render = new Proceso(
+            "Render3D",         // nombre
+            12,                 // total instrucciones
+            true,               // CPU-bound
+            0,                  // sin E/S
+            0,                  // sin E/S
+            0                   // tiempo llegada
+        );
         
-        System.out.println("   📈 " + planificador.getEstadoCola());
-        System.out.println("   🔄 Procesos activos: " + 
-                         (planificador.tieneProcesos() ? "Sí" : "No"));
-    }
-    
-    private static void mostrarMetricasFinales(Proceso p1, Proceso p2, Proceso p3, int ciclosTotales) {
-        Proceso[] procesos = {p1, p2, p3};
-        int completados = 0;
-        int totalEspera = 0;
-        int totalRetorno = 0;
+        // Proceso I/O-bound corto
+        Proceso chat = new Proceso(
+            "Chat",             // nombre
+            6,                  // total instrucciones
+            false,              // I/O-bound
+            2,                  // cada 2 ciclos genera E/S
+            1,                  // E/S dura 1 ciclo
+            1                   // llega en ciclo 1
+        );
         
-        System.out.println("📈 MÉTRICAS POR PROCESO:");
-        for (Proceso p : procesos) {
-            System.out.println("\n   " + p.getId() + " - " + p.getName() + ":");
-            System.out.println("     📍 Estado: " + p.getState());
-            System.out.println("     🔢 Progreso: " + p.getPc() + "/" + p.getTotalInstructions());
-            
-            if (p.isFinished()) {
-                completados++;
-                totalEspera += p.getTiempoEspera();
-                totalRetorno += p.getTiempoRetorno();
+        // Proceso mixto
+        Proceso juego = new Proceso(
+            "Juego",            // nombre
+            15,                 // total instrucciones
+            false,              // I/O-bound
+            5,                  // cada 5 ciclos genera E/S
+            2,                  // E/S dura 2 ciclos
+            2                   // llega en ciclo 2
+        );
+        
+        engine.agregarProceso(render);
+        engine.iniciarSimulacion();
+        
+        // Agregar procesos en diferentes momentos
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000); // 2 ciclos
+                System.out.println("\n⏰ Agregando Chat en ciclo 2...");
+                engine.agregarProceso(chat);
                 
-                System.out.println("     ⏱️  Tiempo espera: " + p.getTiempoEspera() + " ciclos");
-                System.out.println("     ⏰ Tiempo retorno: " + p.getTiempoRetorno() + " ciclos");
-            } else {
-                System.out.println("     ❌ No completado");
+                Thread.sleep(1500); // 3 ciclos más
+                System.out.println("⏰ Agregando Juego en ciclo 5...");
+                engine.agregarProceso(juego);
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
+        
+        // Esperar a que terminen
+        esperarTerminacionMultiples(engine, 25000);
+        engine.detenerSimulacion();
+        
+        System.out.println("\n📊 MÉTRICAS FINALES - PRUEBA 3:");
+        mostrarMetricasProceso(render, "Render3D");
+        mostrarMetricasProceso(chat, "Chat");
+        mostrarMetricasProceso(juego, "Juego");
+        
+        mostrarMetricasEngine(engine);
+        
+        // Análisis del comportamiento FCFS
+        System.out.println("\n📈 ANÁLISIS COMPORTAMIENTO FCFS:");
+        System.out.println("• FCFS es NO apropiativo: una vez que un proceso toma la CPU,");
+        System.out.println("  la mantiene hasta terminar o ir a E/S");
+        System.out.println("• Los procesos se ejecutan en orden de llegada");
+        System.out.println("• Puede causar alto tiempo de espera para procesos cortos");
+        System.out.println("• Simple pero puede no ser óptimo para tiempos de respuesta");
+    }
+    
+    /**
+     * Espera hasta que un proceso termine o timeout
+     */
+    private static void esperarTerminacion(Engine engine, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (engine.isSimulacionActiva() && 
+               (System.currentTimeMillis() - startTime) < timeoutMs) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
-        
-        System.out.println("\n📊 MÉTRICAS GLOBALES:");
-        System.out.println("   🔢 Ciclos totales: " + ciclosTotales);
-        System.out.println("   ✅ Procesos completados: " + completados + "/3");
-        
-        if (completados > 0) {
-            System.out.println("   📊 Tiempo espera promedio: " + (totalEspera / completados) + " ciclos");
-            System.out.println("   📈 Tiempo retorno promedio: " + (totalRetorno / completados) + " ciclos");
-            System.out.println("   🚀 Throughput: " + 
-                             String.format("%.2f", (double) completados / ciclosTotales) + 
-                             " procesos/ciclo");
+    }
+    
+    /**
+     * Espera hasta que todos los procesos terminen o timeout
+     */
+    private static void esperarTerminacionMultiples(Engine engine, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (engine.isSimulacionActiva() && 
+               engine.contarProcesosActivos() > 0 &&
+               (System.currentTimeMillis() - startTime) < timeoutMs) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
-        
-        System.out.println("\n⏰ Configuración del reloj:");
-        System.out.println("   🕒 Duración del ciclo: " + Reloj.getCycleDurationMs() + "ms");
+    }
+    
+    /**
+     * Muestra métricas de un proceso individual
+     */
+    private static void mostrarMetricasProceso(Proceso proceso, String nombre) {
+        System.out.println("\n📈 " + nombre + ":");
+        System.out.println("   • Instrucciones: " + proceso.getPc() + "/" + proceso.getTotalInstructions());
+        System.out.println("   • Tiempo llegada: " + proceso.getTiempoLlegada());
+        System.out.println("   • Tiempo inicio: " + proceso.getTiempoInicioEjecucion());
+        System.out.println("   • Tiempo finalización: " + proceso.getTiempoFinalizacion());
+        System.out.println("   • Tiempo de retorno: " + proceso.getTiempoRetorno());
+        System.out.println("   • Tiempo de espera: " + proceso.getTiempoEspera());
+        System.out.println("   • Tiempo ejecución total: " + proceso.getTiempoEjecucionTotal());
+        System.out.println("   • Estado final: " + proceso.getState());
+    }
+    
+    /**
+     * Muestra métricas del engine
+     */
+    private static void mostrarMetricasEngine(Engine engine) {
+        System.out.println("\n🏁 MÉTRICAS DEL ENGINE:");
+        System.out.println("   • Ciclos totales: " + engine.getCiclosTotales());
+        System.out.println("   • Cambios de contexto: " + engine.getCambiosContexto());
+        System.out.println("   • Operaciones E/S completadas: " + engine.getOperacionesESCompletadas());
+        System.out.println("   • Procesos suspendidos: " + engine.getProcesosSuspendidos());
+        System.out.println("   • Estado simulación: " + engine.getEstadoSimulacion());
     }
 }

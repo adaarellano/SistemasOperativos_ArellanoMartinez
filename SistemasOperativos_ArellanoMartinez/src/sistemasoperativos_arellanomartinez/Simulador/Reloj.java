@@ -10,25 +10,25 @@ package sistemasoperativos_arellanomartinez.Simulador;
  */
 public class Reloj {
     private static int currentCycle = 0;
-    private static int cycleDurationMs = 1000;
+    private static int cycleDurationMs = 100;
+    
+    public Reloj(int cycleDurationMs) {
+        Reloj.cycleDurationMs = cycleDurationMs;
+    }
     
     public static int getCurrentCycle() {
         return currentCycle;
     }
     
-    public static void tick() {
-        currentCycle++;
-    }
-    
-    public static void reset() {
-        currentCycle = 0;
+    public static void setCurrentCycle(int cycle) {
+        currentCycle = cycle;
     }
     
     public static int getCycleDurationMs() {
         return cycleDurationMs;
     }
     
-    public static void setCycleDurationMs(int durationMs) {
-        cycleDurationMs = durationMs;
+    public static void incrementCycle() {
+        currentCycle++;
     }
 }

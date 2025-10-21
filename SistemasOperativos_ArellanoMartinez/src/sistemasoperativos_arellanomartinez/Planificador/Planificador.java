@@ -5,9 +5,8 @@
 package sistemasoperativos_arellanomartinez.Planificador;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 
-
 /**
- *Define el contrato que todos los algoritmos de planificación deben seguir. 
+ * Define el contrato que todos los algoritmos de planificación deben seguir. 
  * Esto permite cambiar dinámicamente entre diferentes políticas.
  * @author Indatech
  */
@@ -26,4 +25,31 @@ public interface Planificador {
     boolean tieneProcesos();
     String getNombre();
     
+    // 🔥 NUEVOS MÉTODOS REQUERIDOS POR SIMULATIONENGINE
+    // 🔹 PARA COMPATIBILIDAD CON SIMULATIONENGINE
+    default Proceso seleccionarProximoProceso() {
+        return siguienteProceso();  // Método alias para compatibilidad
+    }
+    
+    default String getNombreAlgoritmo() {
+        return getNombre();  // Método alias para compatibilidad
+    }
+    
+    // 🔹 MÉTODOS NUEVOS PARA GESTIÓN AVANZADA
+    void reorganizarColas();  // Para algoritmos que necesitan reordenar
+    
+    // 🔹 PARA MANEJO DE E/S (opcional - algunos algoritmos pueden no implementarlo)
+    default void procesoBloqueado(Proceso proceso) {
+        // Implementación por defecto vacía
+    }
+    
+    default void procesoVolvioDeES(Proceso proceso) {
+        // Implementación por defecto vacía
+        agregarProceso(proceso);  // Por defecto, volver a agregar a la cola
+    }
+    
+    // 🔹 PARA OBTENER INFORMACIÓN DE DEBUGGING
+    default String getEstadoColas() {
+        return "Información no disponible";
+    }
 }

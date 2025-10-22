@@ -140,7 +140,7 @@ public class ListaSimple {
  * @param elemento El objeto (Proceso) a remover.
  * @return true si el elemento fue encontrado y eliminado, false en caso contrario.
  */
-     public boolean remove(Object elemento) {
+    public boolean remove(Object elemento) {
         if (isEmpty()) {
             return false;
         }
@@ -167,5 +167,11 @@ public class ListaSimple {
         size--; 
         return true;
     }
+     
+    public void clear() {
+    this.head = null;
+    this.size = 0;
+}
+     
     
 }

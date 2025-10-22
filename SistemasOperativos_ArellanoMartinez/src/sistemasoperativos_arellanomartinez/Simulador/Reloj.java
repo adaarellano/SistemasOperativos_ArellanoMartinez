@@ -50,7 +50,7 @@ public class Reloj {
     }
     
     public static void setCycleDurationMs(int duration) {
-        cycleDurationMs = duration;
+        cycleDurationMs = Math.max(10, duration);
         System.out.println("⚙️ Duración del ciclo cambiada a: " + duration + "ms");
     }
 }

@@ -3,23 +3,12 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/pruebas/prueba_proceso.java</file>
+            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Simulador/ProcesoData.java</file>
             <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/view/MainGUI.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/pruebas/PruebaRR.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/view/ConsolaGamer.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/ListaCircular.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Planificador/FCFS.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/ListaDoble.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/SistemasOperativos_ArellanoMartinez.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Planificador/Planificador.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/Nodo.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/Cola.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/Pila.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/ListaCircularDoble.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Simulador/Proceso.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/pruebas/PruebaFCFS.java</file>
+            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Simulador/Reloj.java</file>
+            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Controller/ConfiguracionSimulacion.java</file>
             <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/edd/ListaSimple.java</file>
-            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Planificador/RR.java</file>
+            <file>file:/C:/Users/Indatech/OneDrive/Escritorio/SistemasOperativos_ArellanoMartinez/SistemasOperativos_ArellanoMartinez/src/sistemasoperativos_arellanomartinez/Controller/Engine.java</file>
         </group>
     </open-files>
 </project-private>

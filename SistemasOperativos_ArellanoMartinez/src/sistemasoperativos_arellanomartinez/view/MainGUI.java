@@ -22,8 +22,9 @@ import sistemasoperativos_arellanomartinez.Controller.*;
 import edd.ListaSimple;
 
 /**
- * 🎮 VENTANA PRINCIPAL CON ESTILO GAMER
+ * VENTANA PRINCIPAL CON ESTILO GAMER
  * Interfaz gráfica principal del simulador de Sistemas Operativos
+ * @author Day
  */
 public class MainGUI extends JFrame {
     private ConsolaGamer consola;
@@ -96,7 +97,6 @@ public class MainGUI extends JFrame {
         panelDerecha.add(scrollConsola, BorderLayout.CENTER);
         panelDashboard.add(panelDerecha);
         
-        //IGUAL
         // 🎯 PANEL INFERIOR - BOTONES 
         JPanel panelBotones = crearPanelBotones();
         
@@ -115,7 +115,7 @@ public class MainGUI extends JFrame {
         lista.setForeground(Color.WHITE);
         lista.setFont(new Font("Consolas", Font.PLAIN, 14));
 
-        // Asignamos las variables de instancia de la clase
+        // Asigna las variables de instancia de la clase
         if (titulo.contains("Listos")) {
             this.modeloListaListos = modelo;
             this.listaListos = lista;

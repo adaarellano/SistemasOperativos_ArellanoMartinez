@@ -6,14 +6,20 @@ package sistemasoperativos_arellanomartinez.Simulador;
 
 import java.util.concurrent.Semaphore;
 
+/**
+ * Define el contrato que todos los algoritmos de planificación deben seguir. 
+ * Esto permite cambiar dinámicamente entre diferentes políticas.
+ * @author Ada y Day
+ */
+
 public class Proceso {
     private static int nextId = 1;
     
-    // IDENTIFICACIÓN
+    // identificacion
     private String id;
     private String name;
     
-    // EJECUCIÓN
+    // ejecucion
     private int totalInstructions;
     private int pc; // Program Counter
     private Estado state;
@@ -21,24 +27,24 @@ public class Proceso {
     private Thread hiloES;
     private volatile boolean ejecutando;
     
-    // CONTROL DE EJECUCIÓN - SIMPLIFICADO
+    // control de ejecucion
     private final Semaphore semaforoControl; // Control principal
     private volatile boolean pausado;
     
-    // CAMPOS PARA SUSPENSIÓN
+    // suspension
     private boolean suspendido;
     private Estado estadoAntesSuspension;
     
-    // TIPO DE PROCESO
+    // tipo ed proceso
     private boolean isCpuBound;
     
-    // GESTIÓN DE E/S
+    // gestion de E/S
     private int ciclosExcepcionES;
     private int duracionES;
     private int tiempoESRestante;
     private int proximaExcepcionES;
     
-    // MÉTRICAS DE PLANIFICACIÓN
+    // metricas de planificacion
     private int tiempoLlegada;
     private int tiempoInicioEjecucion;
     private int tiempoFinalizacion;
@@ -68,19 +74,19 @@ public class Proceso {
         this.ejecutando = false;
         this.pausado = true; // Iniciar pausado
         
-        // SEMÁFORO SIMPLIFICADO
+        // Semaforo
         this.semaforoControl = new Semaphore(0);
         
-        // INICIALIZAR CAMPOS DE SUSPENSIÓN
+        // inicializa suspension
         this.suspendido = false;
         this.estadoAntesSuspension = null;
         
-        // CREAR HILOS
+        // crear hilos de proceso
         crearHilos();
     }
     
     /**
-     * Hilo principal de ejecución - VERSIÓN SIMPLIFICADA
+     * hilo principal de ejecucion
      */
     private void crearHilos() {
         // Hilo principal de ejecución
@@ -142,7 +148,7 @@ public class Proceso {
      */
     private void ejecutarCiclo() {
         if (pc < totalInstructions && !estaEnES() && !suspendido && !pausado) {
-            // Ejecutar instrucción
+            // Ejecutar instruccion
             pc++;
             tiempoEjecucionTotal++;
             
@@ -153,7 +159,7 @@ public class Proceso {
                 generarES();
             }
             
-            // Verificar si terminó
+            // Verificar si termino
             if (pc >= totalInstructions) {
                 state = Estado.TERMINADO;
                 tiempoFinalizacion = Reloj.getCurrentCycle();
@@ -169,10 +175,8 @@ public class Proceso {
         }
     }
     
-    // MÉTODOS DE CONTROL DEL ENGINE
-    
     /**
-     * El Engine da permiso para ejecutar UN ciclo
+     * El Engine da permiso para ejecutar un ciclo
      */
     public void permitirEjecutarCiclo() {
         if (!pausado && !suspendido && state == Estado.EJECUTANDO && !estaEnES()) {
@@ -239,7 +243,7 @@ public class Proceso {
         System.out.println("Proceso DETENIDO: " + name);
     }
     
-    // MÉTODOS DE SUSPENSIÓN (mantener igual)
+    // metodos de suspension
     public void suspender() {
         if (!suspendido && state != Estado.TERMINADO) {
             estadoAntesSuspension = state;
@@ -264,7 +268,7 @@ public class Proceso {
         return suspendido;
     }
     
-    // MÉTODOS DE E/S (mantener igual)
+    // metodos de E/S
     public boolean debeGenerarES() {
         if (isCpuBound) return false;
         return pc >= proximaExcepcionES;
@@ -293,7 +297,7 @@ public class Proceso {
         return tiempoESRestante > 0;
     }
     
-    // GETTERS Y SETTERS (simplificados - sin sincronización excesiva)
+   
     public String getId() { return id; }
     public String getName() { return name; }
     public int getTotalInstructions() { return totalInstructions; }
@@ -307,7 +311,7 @@ public class Proceso {
     public boolean isEjecutando() { return ejecutando && !pausado && !suspendido; }
     public boolean isPausado() { return pausado; }
     
-    // Setters y Getters para métricas
+    
     public void setTiempoInicioEjecucion(int tiempo) { this.tiempoInicioEjecucion = tiempo; }
     public void setTiempoFinalizacion(int tiempo) { this.tiempoFinalizacion = tiempo; }
     public void setTiempoLlegada(int tiempoLlegada) { this.tiempoLlegada = tiempoLlegada; }
@@ -318,7 +322,7 @@ public class Proceso {
     public int getProximaExcepcionES() { return proximaExcepcionES; }
     public int getDuracionES() { return duracionES; }
     
-    // Métricas
+    // metricas
     public int getTiempoEspera() {
         if (tiempoInicioEjecucion == -1) return 0;
         return tiempoInicioEjecucion - tiempoLlegada;

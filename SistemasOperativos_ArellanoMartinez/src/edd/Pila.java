@@ -8,7 +8,7 @@ import edd.Nodo;
 
 /**
  *
- * @author Alejandro
+ * @author Ada y Day
  */
 public class Pila {
     

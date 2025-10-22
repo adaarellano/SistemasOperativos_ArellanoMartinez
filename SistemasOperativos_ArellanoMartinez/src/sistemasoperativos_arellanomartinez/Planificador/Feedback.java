@@ -9,6 +9,11 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import edd.ListaSimple;
 import java.util.concurrent.Semaphore;
 
+/**
+ * Feedback
+ * @author Day
+ */
+
 public class Feedback implements Planificador {
     private static final int NUM_COLAS = 4;
     private static final int[] QUANTUMS = {2, 4, 8, Integer.MAX_VALUE};

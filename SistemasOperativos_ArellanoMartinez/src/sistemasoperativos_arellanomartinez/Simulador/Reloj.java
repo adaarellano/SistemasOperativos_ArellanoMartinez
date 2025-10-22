@@ -6,7 +6,7 @@ package sistemasoperativos_arellanomartinez.Simulador;
 
 /**
  *
- * @author raiza
+ * @author Ada y Day
  */
 public class Reloj {
     private static int currentCycle = 0;
@@ -37,20 +37,20 @@ public class Reloj {
         currentCycle++;
     }
     
-    // 🔄 MÉTODOS NUEVOS QUE FALTAN
+    // incrementa proceso
     public static void tick() {
         currentCycle++;
-        System.out.println("⏰ Reloj avanzó a ciclo: " + currentCycle);
+        System.out.println("Reloj avanzó a ciclo: " + currentCycle);
     }
     
     public static void reset() {
         currentCycle = 0;
         cycleDurationMs = initialCycleDurationMs;
-        System.out.println("🔄 Reloj reiniciado a ciclo 0");
+        System.out.println("Reloj reiniciado a ciclo 0");
     }
     
     public static void setCycleDurationMs(int duration) {
         cycleDurationMs = Math.max(10, duration);
-        System.out.println("⚙️ Duración del ciclo cambiada a: " + duration + "ms");
+        System.out.println("Duración del ciclo cambiada a: " + duration + "ms");
     }
 }

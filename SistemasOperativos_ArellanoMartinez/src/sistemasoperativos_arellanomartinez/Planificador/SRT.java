@@ -12,7 +12,7 @@ import java.util.concurrent.Semaphore;
 /**
  * SRT (Shortest Remaining Time) - Planificación apropiativa
  * Política: Siempre ejecuta el proceso con menos instrucciones restantes
- * @author Day
+ * @author Ada
  */
 public class SRT implements Planificador {
     private ListaSimple procesosListos;

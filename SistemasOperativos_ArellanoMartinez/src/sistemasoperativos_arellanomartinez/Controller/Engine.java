@@ -14,6 +14,7 @@ import javax.swing.SwingUtilities;
 import java.util.concurrent.Semaphore;
 
 /**
+ * @author Ada y Day
  * Motor principal de simulacion con coordinacion mejorada
  */
 public class Engine {
@@ -93,7 +94,7 @@ public class Engine {
                 // 1. Avanzar tiempo
                 Reloj.tick();
                 ciclosTotales++;
-                log("⏰ Ciclo: " + Reloj.getCurrentCycle(), new Color(150, 150, 150));
+                log("Ciclo: " + Reloj.getCurrentCycle(), new Color(150, 150, 150));
                 
                 // 2. Contabilizar uso de CPU
                 if (procesoEjecutandoActual != null) {
@@ -109,7 +110,7 @@ public class Engine {
                 if (procesoAntesDePlanificar != null && procesoAntesDePlanificar.isFinished() && !procesoYaContabilizado(procesoAntesDePlanificar)) {
                     this.procesosCompletados++;
                     this.procesosTerminados.insertFinal(procesoAntesDePlanificar);
-                    log("📊 Proceso '" + procesoAntesDePlanificar.getName() + "' completado.", Color.MAGENTA);
+                    log("Proceso '" + procesoAntesDePlanificar.getName() + "' completado.", Color.MAGENTA);
                 }
                 
                 // 5. Manejar operaciones de E/S
@@ -163,9 +164,9 @@ public class Engine {
                     procesoEjecutandoActual.setState(Proceso.Estado.EJECUTANDO);
                     procesoEjecutandoActual.reanudarEjecucion(); // <- NUEVO MÉTODO
                     
-                    log("🎯 CPU asignado a: " + procesoEjecutandoActual.getName(), Color.GREEN);
+                    log("CPU asignado a: " + procesoEjecutandoActual.getName(), Color.GREEN);
                 } else {
-                    log("💤 CPU LIBRE - No hay procesos para ejecutar.", Color.GRAY);
+                    log("CPU LIBRE - No hay procesos para ejecutar.", Color.GRAY);
                 }
             } else if (procesoEjecutandoActual != null) {
                 // Mismo proceso, mantener ejecucion SOLO a este
@@ -197,7 +198,7 @@ public class Engine {
     }
     
     /**
-     * 🔥 NUEVO: Asegura que solo el proceso actual tenga permiso de ejecucion
+     * Asegura que solo el proceso actual tenga permiso de ejecucion
      */
     private void asegurarUnSoloProcesoConPermiso() {
         for (int i = 0; i < todosProcesos.sizeLista(); i++) {

@@ -6,7 +6,7 @@ package sistemasoperativos_arellanomartinez;
 
 /**
  *
- * @author raiza
+ * @author Day y Ada
  */
 public class SistemasOperativos_ArellanoMartinez {
 

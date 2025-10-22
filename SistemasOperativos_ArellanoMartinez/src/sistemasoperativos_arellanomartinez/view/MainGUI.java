@@ -28,8 +28,9 @@ import edd.ListaSimple;
  */
 public class MainGUI extends JFrame {
     private ConsolaGamer consola;
-    private JButton btnFCFS, btnRR, btnSPN, btnSRT, btnHRRN, btnFeedback, btnSalir, btnAgregarProceso, guardar, cargar;
+    private JButton btnIniciar, btnSalir, btnAgregarProceso, guardar, cargar;
     private JSlider sliderVelocidad;
+    private JComboBox<String> selectorAlgoritmo;
     private Engine motorSimulacionActual;
     private ListaSimple procesosParaSimular;
     
@@ -138,36 +139,36 @@ public class MainGUI extends JFrame {
     }
 
     private JPanel crearPanelCPU() {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setOpaque(false);
-    panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GREEN), "CPU en Ejecución", 0, 0, new Font("Consolas", Font.BOLD, 16), Color.GREEN));
-    
-    labelProcesoCPU = new JLabel("LIBRE", SwingConstants.CENTER);
-    labelProcesoCPU.setFont(new Font("Consolas", Font.BOLD, 20));
-    labelProcesoCPU.setForeground(Color.WHITE);
-    
-    panel.add(labelProcesoCPU, BorderLayout.CENTER);
-    panel.setPreferredSize(new Dimension(100, 120));
-    
-    return panel;
-}
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GREEN), "CPU en Ejecución", 0, 0, new Font("Consolas", Font.BOLD, 16), Color.GREEN));
 
-    private JPanel crearPanelInfoPCB() {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setOpaque(false);
-    panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(COLOR_BOTON), "Info del Proceso (PCB)", 0, 0, new Font("Consolas", Font.BOLD, 16), COLOR_TEXTO));
-    
-    areaInfoProceso = new JTextArea("Selecciona un proceso...");
-    areaInfoProceso.setEditable(false);
-    areaInfoProceso.setBackground(new Color(20, 20, 40));
-    areaInfoProceso.setForeground(Color.WHITE);
-    areaInfoProceso.setFont(new Font("Monospaced", Font.PLAIN, 12));
-    
-    panel.add(new JScrollPane(areaInfoProceso), BorderLayout.CENTER);
-    panel.setPreferredSize(new Dimension(100, 120));
+        labelProcesoCPU = new JLabel("LIBRE", SwingConstants.CENTER);
+        labelProcesoCPU.setFont(new Font("Consolas", Font.BOLD, 20));
+        labelProcesoCPU.setForeground(Color.WHITE);
 
-    return panel;
-}
+        panel.add(labelProcesoCPU, BorderLayout.CENTER);
+        panel.setPreferredSize(new Dimension(100, 120));
+
+        return panel;
+    }
+
+        private JPanel crearPanelInfoPCB() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(COLOR_BOTON), "Info del Proceso (PCB)", 0, 0, new Font("Consolas", Font.BOLD, 16), COLOR_TEXTO));
+
+        areaInfoProceso = new JTextArea("Selecciona un proceso...");
+        areaInfoProceso.setEditable(false);
+        areaInfoProceso.setBackground(new Color(20, 20, 40));
+        areaInfoProceso.setForeground(Color.WHITE);
+        areaInfoProceso.setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+        panel.add(new JScrollPane(areaInfoProceso), BorderLayout.CENTER);
+        panel.setPreferredSize(new Dimension(100, 120));
+
+        return panel;
+    }
     
     private JPanel crearPanelTitulo() {
         JPanel panel = new JPanel();
@@ -187,29 +188,33 @@ public class MainGUI extends JFrame {
         panel.setBackground(COLOR_FONDO);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Crear botones con estilo gamer
-        btnFCFS = crearBotonGamer("FCFS");
-        btnRR = crearBotonGamer("Round Robin");
-        btnSPN = crearBotonGamer("SPN");
-        btnSRT = crearBotonGamer("SRT");
-        btnHRRN = crearBotonGamer("HRRN");
-        btnFeedback = crearBotonGamer("Feedback");
-        btnSalir = crearBotonGamer("🚪 SALIR");
+        // Botones de control de procesos
         btnAgregarProceso = crearBotonGamer("Añadir Proceso");
         guardar = crearBotonGamer("Guardar");
         cargar = crearBotonGamer("Cargar archivo");
-        panel.add(btnFCFS);
-        panel.add(btnRR);
-        panel.add(btnSPN);
-        panel.add(btnSRT);
-        panel.add(btnHRRN);
-        panel.add(btnFeedback);
+        btnSalir = crearBotonGamer("🚪 SALIR");
+
+        // Botón para iniciar la simulación
+        btnIniciar = crearBotonGamer("▶ Iniciar Simulación");
+
+        // Menú desplegable para seleccionar el algoritmo
+        selectorAlgoritmo = new JComboBox<>();
+        selectorAlgoritmo.addItem("FCFS");
+        selectorAlgoritmo.addItem("Round Robin");
+        selectorAlgoritmo.addItem("SPN");
+        selectorAlgoritmo.addItem("SRT");
+        selectorAlgoritmo.addItem("HRRN");
+        selectorAlgoritmo.addItem("Feedback");
+        selectorAlgoritmo.setFont(new Font("Consolas", Font.BOLD, 14));
+        
         panel.add(btnSalir);
         panel.add(btnAgregarProceso);
         panel.add(guardar);
         panel.add(cargar);
+        panel.add(selectorAlgoritmo);
+        panel.add(btnIniciar);
         
-        //PARA EL RELOJ
+        //PARA LA VELOCIDAD 
         JPanel panelVelocidad = new JPanel(new BorderLayout(5, 0));
         panelVelocidad.setBackground(COLOR_FONDO);
         JLabel etiquetaVelocidad = new JLabel("Velocidad:", SwingConstants.CENTER);
@@ -249,12 +254,22 @@ public class MainGUI extends JFrame {
     }
     
     private void agregarEventos() {
-        btnFCFS.addActionListener(e -> ejecutarSimulacion(new FCFS()));
-        btnRR.addActionListener(e -> ejecutarSimulacion(new RR(3))); // Quantum de 3
-        btnSPN.addActionListener(e -> ejecutarSimulacion(new SPN()));
-        btnSRT.addActionListener(e -> ejecutarSimulacion(new SRT()));
-        btnHRRN.addActionListener(e -> ejecutarSimulacion(new HRRN()));
-        btnFeedback.addActionListener(e -> ejecutarSimulacion(new Feedback()));
+        btnIniciar.addActionListener(e -> {
+        // Si no hay una simulación activa, la iniciamos
+        if (motorSimulacionActual == null || !motorSimulacionActual.isSimulacionActiva()) {
+            ejecutarSimulacion();
+        }
+        });
+        
+        // --- Evento del menú desplegable ---
+        selectorAlgoritmo.addActionListener(e -> {
+            // Solo cambia el algoritmo si la simulación YA está en curso
+            if (motorSimulacionActual != null && motorSimulacionActual.isSimulacionActiva()) {
+                Planificador nuevoPlanificador = crearPlanificadorDesdeSelector();
+                motorSimulacionActual.setPlanificador(nuevoPlanificador);
+            }
+        });
+        
         btnAgregarProceso.addActionListener(e -> mostrarFormularioProceso());
         guardar.addActionListener(e -> guardarConfiguracion());
         cargar.addActionListener(e -> cargarConfiguracion());
@@ -274,6 +289,25 @@ public class MainGUI extends JFrame {
         
     }
     
+    // 1. Añade este nuevo método auxiliar
+    private Planificador crearPlanificadorDesdeSelector() {
+        String seleccion = (String) selectorAlgoritmo.getSelectedItem();
+        switch (seleccion) {
+            case "Round Robin": return new RR(3); // Quantum de 3
+            case "SPN": return new SPN();
+            case "SRT": return new SRT();
+            case "HRRN": return new HRRN();
+            case "Feedback": return new Feedback();
+            case "FCFS":
+            default:
+                return new FCFS();
+        }
+    }
+    
+    
+    
+    
+    
     private void mostrarBienvenida() {
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
         consola.agregarLinea("🎮 BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN);
@@ -282,86 +316,86 @@ public class MainGUI extends JFrame {
         consola.agregarLinea("");
         }
     
-    private void ejecutarSimulacion(Planificador planificador) {
+    private void ejecutarSimulacion() {
         if (motorSimulacionActual != null && motorSimulacionActual.isSimulacionActiva()) {
-            motorSimulacionActual.detenerSimulacion();
+        motorSimulacionActual.detenerSimulacion();
         }
         if (this.procesosParaSimular.sizeLista() == 0) {
-        consola.agregarLinea("⚠️ No hay procesos en la lista. Añade o carga procesos antes de simular.", Color.ORANGE);
-        return; // Detiene la ejecución del método
+        consola.agregarLinea("⚠️ No hay procesos. Añade o carga procesos antes de simular.", Color.ORANGE);
+        return;
         }
+        
+        // Obtenemos el planificador inicial desde el selector que el usuario eligió.
+        Planificador planificadorInicial = crearPlanificadorDesdeSelector();
         new Thread(() -> {
             try {
                 // 1. Crear el motor pasándole el planificador y la consola
-                motorSimulacionActual = new Engine(planificador, this.consola);
-
+                motorSimulacionActual = new Engine(planificadorInicial, this.consola);
                 SwingUtilities.invokeLater(() -> {
                     consola.limpiar();
-                    consola.agregarLinea("🚀 INICIANDO SIMULACIÓN: " + planificador.getNombreAlgoritmo(), Color.GREEN);
+                    consola.agregarLinea("🚀 INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
                     consola.agregarLinea("📦 Cargando " + this.procesosParaSimular.sizeLista() + " procesos definidos por el usuario...", Color.WHITE);
                     consola.agregarSeparador();
                 });
 
                 // --- ESTE BLOQUE AHORA USA TU LISTA ---
-            for (int i = 0; i < this.procesosParaSimular.sizeLista(); i++) {
+                for (int i = 0; i < this.procesosParaSimular.sizeLista(); i++) {
                 Proceso pOriginal = (Proceso) this.procesosParaSimular.get(i);
                 Proceso pCopia = new Proceso(pOriginal.getName(), pOriginal.getTotalInstructions(), pOriginal.isCpuBound(), pOriginal.getProximaExcepcionES(), pOriginal.getDuracionES(), i);
                 motorSimulacionActual.agregarProceso(pCopia);
             }
             
-            motorSimulacionActual.iniciarSimulacion();
+                motorSimulacionActual.iniciarSimulacion();
             // --- BUCLE DE ACTUALIZACIÓN EN TIEMPO REAL ---
-            while (motorSimulacionActual.isSimulacionActiva()) {
-                actualizarDashboard(); // Llama al método que "pinta" la GUI
+                while (motorSimulacionActual.isSimulacionActiva()) {
+                actualizarDashboard();
                 try {
-                    // Controlamos la tasa de refresco de la GUI (ej. 10 veces por segundo)
                     Thread.sleep(100); 
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 }
-            }
-            // Pequeña pausa final para asegurar la última actualización
-            Thread.sleep(200);
-            actualizarDashboard();
+                }
+                // Pequeña pausa final para asegurar la última actualización
+                Thread.sleep(200);
+                actualizarDashboard();
             
-        } catch (Exception e) {
-            // Este es tu bloque catch, déjalo como está
-            SwingUtilities.invokeLater(() -> {
-                consola.agregarLinea("❌ Error inesperado: " + e.getMessage(), Color.RED);
-            });
-            e.printStackTrace();
-        } finally {
-            // --- COPIA Y PEGA DESDE AQUÍ ---
-            if (motorSimulacionActual != null) {
-                motorSimulacionActual.detenerSimulacion();
-
-                // Se formatea el string con los resultados finales de las métricas
-                final String resultados = String.format(
-                    "📊 MÉTRICAS FINALES (%s):\n" +
-                    "   • Throughput: %.4f procesos/ciclo\n" +
-                    "   • Utilización de CPU: %.2f%%\n" +
-                    "   • Tiempo de Retorno Promedio: %.2f ciclos\n" +
-                    "   • Tiempo de Espera Promedio: %.2f ciclos",
-                    planificador.getNombreAlgoritmo(),
-                    motorSimulacionActual.getThroughput(),
-                    motorSimulacionActual.getUtilizacionCPU(),
-                    motorSimulacionActual.getTiempoRetornoPromedio(),
-                    motorSimulacionActual.getTiempoEsperaPromedio()
-                );
-
-                // Se actualiza la interfaz gráfica de forma segura
+            } catch (Exception e) {
+                // Este es tu bloque catch, déjalo como está
                 SwingUtilities.invokeLater(() -> {
-                    consola.agregarSeparador();
-                    consola.agregarLinea("🎉 SIMULACIÓN COMPLETADA", Color.GREEN);
-                    consola.agregarLinea(resultados, Color.YELLOW);
-                    consola.agregarLinea("💡 Selecciona otro algoritmo para comparar o añade más procesos.", Color.ORANGE);
+                    consola.agregarLinea("❌ Error inesperado: " + e.getMessage(), Color.RED);
                 });
+                e.printStackTrace();
+            } finally {
+                if (motorSimulacionActual != null) {
+                    motorSimulacionActual.detenerSimulacion();
+
+                    // Se formatea el string con los resultados finales
+                    final String resultados = String.format(
+                        "📊 MÉTRICAS FINALES (%s):\n" +
+                        "   • Throughput: %.4f procesos/ciclo\n" +
+                        "   • Utilización de CPU: %.2f%%\n" +
+                        "   • Tiempo de Retorno Promedio: %.2f ciclos\n" +
+                        "   • Tiempo de Espera Promedio: %.2f ciclos",
+                        // --- CORRECCIÓN 4: Usamos planificadorInicial de nuevo ---
+                        motorSimulacionActual.getPlanificador().getNombreAlgoritmo(),
+                        motorSimulacionActual.getThroughput(),
+                        motorSimulacionActual.getUtilizacionCPU(),
+                        motorSimulacionActual.getTiempoRetornoPromedio(),
+                        motorSimulacionActual.getTiempoEsperaPromedio()
+                    );
+
+                    // Se actualiza la GUI de forma segura
+                    SwingUtilities.invokeLater(() -> {
+                        consola.agregarSeparador();
+                        consola.agregarLinea("🎉 SIMULACIÓN COMPLETADA", Color.GREEN);
+                        consola.agregarLinea(resultados, Color.YELLOW);
+                        consola.agregarLinea("💡 Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
+                    });
+                }
             }
-            // --- HASTA AQUÍ ---
-        }
         }).start();
-    } 
+    }
     
     private void mostrarFormularioProceso() {
     // Componentes del formulario

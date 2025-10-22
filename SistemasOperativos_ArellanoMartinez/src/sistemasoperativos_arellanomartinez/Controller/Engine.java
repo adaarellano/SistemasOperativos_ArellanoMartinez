@@ -25,6 +25,7 @@ public class Engine {
     private Thread hiloSimulacion;
     private Proceso procesoEjecutandoActual;
     private ConsolaGamer consola;
+    private volatile Planificador proximoPlanificador = null; // <-- AÑADE ESTA LÍNEA
     
     // SEMAFOROS MEJORADOS
     private final Semaphore semaforoGlobal;    // Exclusion mutua global
@@ -90,6 +91,12 @@ public class Engine {
         while (simulacionActiva && contarProcesosActivos() > 0) {
             try {
                 semaforoGlobal.acquire();
+                
+                // Revisamos si la MainGUI nos dejó una "nota" para cambiar el planificador
+                if (proximoPlanificador != null) {
+                    realizarCambioDePlanificador(proximoPlanificador); // Ejecutamos la lógica que escribiste
+                    proximoPlanificador = null; // Limpiamos la nota
+                }
 
                 // 1. Avanzar tiempo
                 Reloj.tick();
@@ -110,7 +117,11 @@ public class Engine {
                 if (procesoAntesDePlanificar != null && procesoAntesDePlanificar.isFinished() && !procesoYaContabilizado(procesoAntesDePlanificar)) {
                     this.procesosCompletados++;
                     this.procesosTerminados.insertFinal(procesoAntesDePlanificar);
+
                     log("Proceso '" + procesoAntesDePlanificar.getName() + "' completado.", Color.MAGENTA);
+
+                    log("📊 Proceso '" + procesoAntesDePlanificar.getName() + "' ha completado su ejecución.", Color.MAGENTA);
+
                 }
                 
                 // 5. Manejar operaciones de E/S
@@ -132,6 +143,15 @@ public class Engine {
         }
         simulacionActiva = false; // Asegura que el bucle de la GUI también termine
         log("Todos los procesos han terminado o la simulación fue detenida.", new Color(150, 150, 150));
+    }
+    
+    private boolean procesoYaContabilizado(Proceso p) {
+        for (int i = 0; i < procesosTerminados.sizeLista(); i++) {
+            if (procesosTerminados.get(i) == p) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
@@ -714,5 +734,90 @@ public class Engine {
         }
         return bloqueados;
     }
+    /**
+     * Cambia el planificador actual por uno nuevo en tiempo real.
+     * Transfiere todos los procesos activos al nuevo planificador.
+     
+    public void setPlanificador(Planificador nuevoPlanificador) {
+        try {
+            // Bloqueamos todo para hacer el cambio de forma segura
+            semaforoGlobal.acquire();
 
-}
+            log("🔄 Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
+
+            // 1. Crear una lista temporal con todos los procesos que no han terminado.
+            ListaSimple procesosActivos = new ListaSimple();
+            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+                Proceso p = (Proceso) todosProcesos.get(i);
+                if (!p.isFinished()) {
+                    // Devolvemos los procesos a un estado neutral "LISTO"
+                    p.setState(Proceso.Estado.LISTO);
+                    procesosActivos.insertFinal(p);
+                }
+            }
+
+            // 2. Detenemos el proceso que se estaba ejecutando (si lo había)
+            if (procesoEjecutandoActual != null) {
+                procesoEjecutandoActual.pausarEjecucion();
+                procesoEjecutandoActual = null;
+            }
+
+            // 3. Reemplazamos el planificador
+            this.planificador = nuevoPlanificador;
+
+            // 4. Agregamos todos los procesos activos al nuevo planificador
+            for (int i = 0; i < procesosActivos.sizeLista(); i++) {
+                this.planificador.agregarProceso((Proceso) procesosActivos.get(i));
+            }
+
+            cambiosContexto++; // El cambio de planificador cuenta como un cambio de contexto
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (semaforoGlobal.availablePermits() == 0) {
+                semaforoGlobal.release();
+            }
+        }
+    }*/
+    
+    //Aquí cambiamos la lógica del cambio del planificador para que sus hilos no choquen al momento de cambiar de planiicador 
+    private void realizarCambioDePlanificador(Planificador nuevoPlanificador) {
+        // No necesita su propio try-catch-finally porque será llamado desde un lugar seguro
+        log("🔄 Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
+
+        // 1. Crear una lista temporal... (todo tu código actual va aquí)
+        ListaSimple procesosActivos = new ListaSimple();
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (!p.isFinished()) {
+                p.setState(Proceso.Estado.LISTO);
+                procesosActivos.insertFinal(p);
+            }
+        }
+
+        // 2. Detenemos el proceso...
+        if (procesoEjecutandoActual != null) {
+            procesoEjecutandoActual.pausarEjecucion();
+            procesoEjecutandoActual = null;
+        }
+
+        // 3. Reemplazamos el planificador...
+        this.planificador = nuevoPlanificador;
+
+        // 4. Agregamos todos los procesos activos al nuevo planificador...
+        for (int i = 0; i < procesosActivos.sizeLista(); i++) {
+            this.planificador.agregarProceso((Proceso) procesosActivos.get(i));
+        }
+
+        cambiosContexto++;
+    }
+    
+    public void setPlanificador(Planificador nuevoPlanificador) {
+        this.proximoPlanificador = nuevoPlanificador;
+        }
+
+    public Planificador getPlanificador() {
+    return this.planificador;
+    }
+    }

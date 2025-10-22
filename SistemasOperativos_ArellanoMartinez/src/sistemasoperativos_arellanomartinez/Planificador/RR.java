@@ -18,13 +18,9 @@ public class RR implements Planificador {
     private Cola colaListos;
     private Proceso procesoEjecutando;
     private final Semaphore semaforoCola;
-    
-    // Parámetros de Round Robin
     private final int quantum;
     private int contadorQuantum;
     private boolean necesitaReplanificacion;
-    
-    // Métricas
     private int cambiosContexto;
     private int ciclosTotales;
     private int quantumExpirados;
@@ -52,15 +48,15 @@ public class RR implements Planificador {
             
             ciclosTotales++;
             
-            // 1. VERIFICAR SI NECESITA REPLANIFICACIÓN (quantum expirado o proceso terminó)
+            // 1. verificar si el quantum esta expirado o si el proceso termino
             if (procesoEjecutando != null) {
                 if (procesoEjecutando.isFinished() || procesoEjecutando.estaEnES()) {
-                    // Proceso terminó o fue a E/S
+                    // Proceso termino o fue a E/S
                     if (procesoEjecutando.isFinished()) {
                         procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                        System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO en Round Robin");
+                        System.out.println(procesoEjecutando.getName() + " TERMINADO en Round Robin");
                     } else if (procesoEjecutando.estaEnES()) {
-                        System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S");
+                        System.out.println(procesoEjecutando.getName() + " BLOQUEADO por E/S");
                     }
                     
                     procesoEjecutando = null;
@@ -70,7 +66,7 @@ public class RR implements Planificador {
                 } 
                 // Verificar si expiró el quantum
                 else if (contadorQuantum >= quantum) {
-                    System.out.println("⏰ Quantum expirado para " + procesoEjecutando.getName());
+                    System.out.println("Quantum expirado para " + procesoEjecutando.getName());
                     // Reinsertar proceso actual al final de la cola
                     colaListos.encolar(procesoEjecutando);
                     procesoEjecutando.setState(Proceso.Estado.LISTO);
@@ -82,7 +78,7 @@ public class RR implements Planificador {
                 }
             }
             
-            // 2. SELECCIONAR NUEVO PROCESO SI ES NECESARIO
+            // 2. selecciona nuevo proceso
             if (necesitaReplanificacion || procesoEjecutando == null) {
                 if (!colaListos.estaVacia()) {
                     procesoEjecutando = (Proceso) colaListos.desencolar();
@@ -97,16 +93,16 @@ public class RR implements Planificador {
                     necesitaReplanificacion = false;
                     cambiosContexto++;
                     
-                    System.out.println("🎯 Round Robin selecciona: " + procesoEjecutando.getName() + 
+                    System.out.println("Round Robin selecciona: " + procesoEjecutando.getName() + 
                                      " (Quantum: " + contadorQuantum + "/" + quantum + ")");
                 } else {
                     procesoEjecutando = null;
-                    System.out.println("💤 Round Robin: No hay procesos listos");
+                    System.out.println("Round Robin: No hay procesos listos");
                 }
             } else {
                 // Mismo proceso, incrementar contador de quantum
                 contadorQuantum++;
-                System.out.println("🔄 Round Robin mantiene: " + procesoEjecutando.getName() + 
+                System.out.println("Round Robin mantiene: " + procesoEjecutando.getName() + 
                                  " (Quantum: " + contadorQuantum + "/" + quantum + ")");
             }
             
@@ -127,7 +123,7 @@ public class RR implements Planificador {
             proceso.setState(Proceso.Estado.LISTO);
             colaListos.encolar(proceso);
             
-            System.out.println("📥 " + proceso.getName() + " agregado a Round Robin (Quantum: " + quantum + ")");
+            System.out.println(proceso.getName() + " agregado a Round Robin (Quantum: " + quantum + ")");
             
             semaforoCola.release();
             
@@ -179,7 +175,7 @@ public class RR implements Planificador {
                 if (p != proceso) {
                     temp.encolar(p);
                 } else {
-                    System.out.println("🗑️ " + p.getName() + " removido de Round Robin");
+                    System.out.println(p.getName() + " removido de Round Robin");
                 }
             }
             while (!temp.estaVacia()) {
@@ -227,14 +223,14 @@ public class RR implements Planificador {
             semaforoCola.acquire();
             
             StringBuilder sb = new StringBuilder();
-            sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
-                procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
+            sb.append("CPU: ").append(procesoEjecutando != null ? 
+                procesoEjecutando.getName() + " [EJECUTANDO]" : "Libre").append("\n");
             
             if (procesoEjecutando != null) {
                 sb.append("   Quantum: ").append(contadorQuantum).append("/").append(quantum).append("\n");
             }
             
-            sb.append("📋 Cola Listos (").append(colaListos.getTamano()).append("): ");
+            sb.append("Cola Listos (").append(colaListos.getTamano()).append("): ");
             if (colaListos.estaVacia()) {
                 sb.append("Vacía");
             } else {
@@ -249,9 +245,9 @@ public class RR implements Planificador {
                 }
             }
             
-            sb.append("\n🔀 Cambios contexto: ").append(cambiosContexto);
-            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
-            sb.append("\n⚡ Quantum expirados: ").append(quantumExpirados);
+            sb.append("\nCambios contexto: ").append(cambiosContexto);
+            sb.append("\nCiclos totales: ").append(ciclosTotales);
+            sb.append("\nQuantum expirados: ").append(quantumExpirados);
             
             semaforoCola.release();
             return sb.toString();
@@ -261,8 +257,6 @@ public class RR implements Planificador {
             return "Error al obtener estado";
         }
     }
-    
-    // 🔹 MÉTODOS ESPECÍFICOS DE ROUND ROBIN
     
     public int getQuantum() {
         return quantum;

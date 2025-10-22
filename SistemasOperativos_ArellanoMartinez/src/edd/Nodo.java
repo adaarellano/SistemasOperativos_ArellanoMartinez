@@ -6,7 +6,7 @@ package edd;
 
 /**
  *
- * @author Day
+ * @author Ada y Day
  */
 public class Nodo {private Object data;      // El objeto a guardar
     private Nodo pnext;      // La dirección del siguiente nodo

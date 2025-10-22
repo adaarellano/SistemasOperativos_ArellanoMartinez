@@ -56,7 +56,7 @@ public class Pila {
         return peak.getData(); // Obtiene el dato de la cima sin eliminarlo
     }
 
-    public int getTamano() { // Es buena práctica llamarlo con "get"
+    public int getTamano() { 
         return tamano;
     }
 

@@ -15,24 +15,24 @@ import java.util.concurrent.Semaphore;
 
 /**
  * @author Ada y Day
- * Motor principal de simulacion con coordinacion mejorada
+ * Motor principal de simulacion 
  */
 public class Engine {
-    // COMPONENTES QUE COORDINA
+    
     private Planificador planificador;
     private ListaSimple todosProcesos;
     private volatile boolean simulacionActiva;
     private Thread hiloSimulacion;
     private Proceso procesoEjecutandoActual;
     private ConsolaGamer consola;
-    private volatile Planificador proximoPlanificador = null; // <-- AÑADE ESTA LÍNEA
+    private volatile Planificador proximoPlanificador = null; 
     
-    // SEMAFOROS MEJORADOS
+    // semaforos
     private final Semaphore semaforoGlobal;    // Exclusion mutua global
     private final Semaphore semaforoES;        // Control de E/S simultaneas
     private final Semaphore semaforoPlanificador; // Proteccion del planificador
     
-    // METRICAS GLOBALES
+    // metricas
     private int ciclosTotales;
     private int cambiosContexto;
     private int operacionesESCompletadas;
@@ -58,12 +58,11 @@ public class Engine {
         this.operacionesESCompletadas = 0;
         this.procesosSuspendidos = 0;
         
-        // INICIALIZAR NUEVAS MÉTRICAS
+        // inicializar metricas
         this.procesosCompletados = 0;
         this.ciclosCpuOcupado = 0;
         this.procesosTerminados = new ListaSimple();
-        
-        log("Engine creado con coordinación mejorada", Color.CYAN);
+       
     }
     
     /**
@@ -80,7 +79,6 @@ public class Engine {
         hiloSimulacion.setName("Engine-Simulation-Thread");
         hiloSimulacion.start();
         
-        log("Engine iniciado con coordinacion mejorada", Color.ORANGE);
     }
     
     /**
@@ -92,13 +90,13 @@ public class Engine {
             try {
                 semaforoGlobal.acquire();
                 
-                // Revisamos si la MainGUI nos dejó una "nota" para cambiar el planificador
+                // Revisamos si la interfaz dejó una "nota" para cambiar el planificador
                 if (proximoPlanificador != null) {
-                    realizarCambioDePlanificador(proximoPlanificador); // Ejecutamos la lógica que escribiste
+                    realizarCambioDePlanificador(proximoPlanificador); 
                     proximoPlanificador = null; // Limpiamos la nota
                 }
 
-                // 1. Avanzar tiempo
+                
                 Reloj.tick();
                 ciclosTotales++;
                 log("Ciclo: " + Reloj.getCurrentCycle(), new Color(150, 150, 150));
@@ -120,7 +118,7 @@ public class Engine {
 
                     log("Proceso '" + procesoAntesDePlanificar.getName() + "' completado.", Color.MAGENTA);
 
-                    log("📊 Proceso '" + procesoAntesDePlanificar.getName() + "' ha completado su ejecución.", Color.MAGENTA);
+                    log("Proceso '" + procesoAntesDePlanificar.getName() + "' ha completado su ejecución.", Color.MAGENTA);
 
                 }
                 
@@ -137,11 +135,11 @@ public class Engine {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                log("❌ Error crítico en Engine: " + e.getMessage(), Color.RED);
+                log("Error crítico en Engine: " + e.getMessage(), Color.RED);
                 e.printStackTrace();
             }
         }
-        simulacionActiva = false; // Asegura que el bucle de la GUI también termine
+        simulacionActiva = false; // Asegura que el bucle de la GUI termine
         log("Todos los procesos han terminado o la simulación fue detenida.", new Color(150, 150, 150));
     }
     
@@ -155,19 +153,19 @@ public class Engine {
     }
     
     /**
-     * Ejecutar planificador con control de ejecucion mejorado
+     * Ejecutar planificador con control de ejecucion
      */
     private void ejecutarPlanificadorConControl() {
         try {
             semaforoPlanificador.acquire();
             
-            // 1. DETENER EJECUCION DE TODOS LOS PROCESOS
+            // 1. detener los procesos
             detenerEjecucionTodosProcesos();
             
-            // 2. SELECCIONAR NUEVO PROCESO
+            // 2. selecciona nuevo proceso
             Proceso procesoSeleccionado = planificador.seleccionarProximoProceso();
             
-            // 3. VERIFICAR SI HAY CAMBIO DE PROCESO
+            // 3. verificar si hubo cambio de proceso
             if (procesoSeleccionado != procesoEjecutandoActual) {
                 cambiosContexto++;
                 
@@ -175,34 +173,33 @@ public class Engine {
                 procesoEjecutandoActual = procesoSeleccionado;
                 
                 if (procesoEjecutandoActual != null) {
+                    
                     // Registrar inicio de ejecucion (si es primera vez)
+                    
                     if (procesoEjecutandoActual.getTiempoInicioEjecucion() == -1) {
                         procesoEjecutandoActual.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                     }
-                    
-                    // 🔥 CAMBIO: Configurar estado y PERMITIR EJECUCION usando el nuevo método
+                   
                     procesoEjecutandoActual.setState(Proceso.Estado.EJECUTANDO);
                     procesoEjecutandoActual.reanudarEjecucion(); // <- NUEVO MÉTODO
                     
-                    log("CPU asignado a: " + procesoEjecutandoActual.getName(), Color.GREEN);
+                    log("CPU asignado a " + procesoEjecutandoActual.getName(), Color.GREEN);
                 } else {
-                    log("CPU LIBRE - No hay procesos para ejecutar.", Color.GRAY);
+                    log("CPU libre, no hay procesos para ejecutar.", Color.GRAY);
                 }
             } else if (procesoEjecutandoActual != null) {
-                // Mismo proceso, mantener ejecucion SOLO a este
-                procesoEjecutandoActual.reanudarEjecucion(); // <- NUEVO MÉTODO
+               
+                procesoEjecutandoActual.reanudarEjecucion(); 
             }
             
-            // 🔥 NUEVO: Asegurar que SOLO el proceso actual tiene permiso
             asegurarUnSoloProcesoConPermiso();
             
-            // 🔥 NUEVO: Ejecutar ciclo del proceso actual
             if (procesoEjecutandoActual != null && 
                 procesoEjecutandoActual.getState() == Proceso.Estado.EJECUTANDO &&
                 !procesoEjecutandoActual.estaEnES() &&
                 !procesoEjecutandoActual.isSuspendido()) {
                 
-                procesoEjecutandoActual.permitirEjecutarCiclo(); // <- NUEVO MÉTODO
+                procesoEjecutandoActual.permitirEjecutarCiclo(); 
             }
             
             semaforoPlanificador.release();
@@ -280,7 +277,7 @@ public class Engine {
                     }
                 }
                 
-                // LIBERAR SEMAFORO E/S
+                // aqui se libera el semaforo de e/s
                 semaforoES.release();
                 
                 if (procesosEnES > 0) {
@@ -289,7 +286,7 @@ public class Engine {
                 }
                 
             } else {
-                // No se pudo adquirir semaforo E/S - demasiadas E/S simultaneas
+                // No se pudo adquirir semaforo e/s
                 log("Limite de E/S alcanzado (" + 
                                  semaforoES.availablePermits() + "/3 disponibles)", Color.GRAY);
             }
@@ -314,12 +311,12 @@ public class Engine {
             log("Interrupción al agregar proceso", Color.RED);
         } finally {
             semaforoGlobal.release();
-            log("📥 Proceso agregado: " + proceso.getName());
+            log("Proceso agregado: " + proceso.getName());
         }
     }
     
     /**
-     * Suspende un proceso especifico
+     * Suspende un proceso en especifico
      */
     public void suspenderProceso(Proceso proceso) {
         try {
@@ -457,7 +454,7 @@ public class Engine {
      * Reanuda la simulacion
      */
     public void reanudarSimulacion() {
-        log("Reanudando simulacion...", Color.ORANGE);
+        log("Reanudando simulacion", Color.ORANGE);
         simulacionActiva = true;
         iniciarSimulacion();
     }
@@ -466,7 +463,7 @@ public class Engine {
      * Detiene completamente la simulacion
      */
     public void detenerSimulacion() {
-        log("Deteniendo simulación...", Color.ORANGE);
+        log("Deteniendo simulación.", Color.ORANGE);
         simulacionActiva = false;
         
         if (hiloSimulacion != null && hiloSimulacion.isAlive()) {
@@ -511,9 +508,9 @@ public class Engine {
         try {
             semaforoGlobal.acquire();
             
-            log("\n=== CICLO " + ciclosTotales + " ===", Color.WHITE);
+            log("\n- CICLO " + ciclosTotales + " -", Color.WHITE);
             log("Algoritmo: " + planificador.getNombreAlgoritmo(), Color.WHITE);
-            log("CPU: " + (procesoEjecutandoActual != null ? procesoEjecutandoActual.getName() : "LIBRE"), Color.WHITE);
+            log("CPU: " + (procesoEjecutandoActual != null ? procesoEjecutandoActual.getName() : "Libre"), Color.WHITE);
             log("Procesos activos: " + contarProcesosActivos() + "/" + todosProcesos.sizeLista(),Color.WHITE);
             log("Procesos suspendidos: " + procesosSuspendidos, Color.WHITE);
             log("Cambios de contexto: " + cambiosContexto, Color.WHITE);
@@ -543,7 +540,7 @@ public class Engine {
            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
                Proceso p = (Proceso) todosProcesos.get(i);
                if (p != null && !p.isFinished()) {
-                   // 🔥 SOLUCIÓN DEFINITIVA: Solo verificar si NO está terminado
+                   // verifica si NO está terminado
                    // Los procesos suspendidos se consideran activos porque pueden reanudarse
                    activos++;
                }
@@ -559,7 +556,7 @@ public class Engine {
    }
  
     /**
-     * Obtiene copia de los procesos (para la GUI)
+     * Obtiene copia de los procesos, para la interfaz
      */
     public ListaSimple getProcesos() {
         ListaSimple copia = new ListaSimple();
@@ -579,7 +576,7 @@ public class Engine {
         return copia;
     }
     
-    // METODOS DE CONSULTA
+    
     public boolean isSimulacionActiva() {
         return simulacionActiva;
     }
@@ -623,7 +620,7 @@ public class Engine {
      */
     public String getEstadisticasCompletas() {
         StringBuilder sb = new StringBuilder();
-        sb.append("=== ESTADISTICAS SIMULACION ===\n");
+        sb.append("- ESTADISTICAS SIMULACION -\n");
         sb.append("Ciclos totales: ").append(ciclosTotales).append("\n");
         sb.append("Cambios de contexto: ").append(cambiosContexto).append("\n");
         sb.append("Operaciones E/S: ").append(operacionesESCompletadas).append("\n");
@@ -634,8 +631,8 @@ public class Engine {
         return sb.toString();
     }
     
-        /**
-     * Calcula el throughput del sistema (procesos completados por ciclo).
+    /**
+     * calcula en throughput del sistema
      */
     public double getThroughput() {
         if (ciclosTotales == 0) return 0.0;
@@ -643,7 +640,7 @@ public class Engine {
     }
 
     /**
-     * Calcula el porcentaje de utilización de la CPU.
+     * Calcula el % de uso del CPU
      */
     public double getUtilizacionCPU() {
         if (ciclosTotales == 0) return 0.0;
@@ -651,7 +648,6 @@ public class Engine {
     }
 
     /**
-     * Calcula el tiempo de retorno (Turnaround Time) promedio de los procesos terminados.
      * Tiempo de Retorno = Tiempo de Finalización - Tiempo de Llegada
      */
     public double getTiempoRetornoPromedio() {
@@ -660,13 +656,12 @@ public class Engine {
         int sumaTiemposRetorno = 0;
         for (int i = 0; i < procesosTerminados.sizeLista(); i++) {
             Proceso p = (Proceso) procesosTerminados.get(i);
-            sumaTiemposRetorno += p.getTiempoRetorno(); // Necesitas este método en Proceso.java
+            sumaTiemposRetorno += p.getTiempoRetorno(); //usamos esto en proceso
         }
         return (double) sumaTiemposRetorno / procesosTerminados.sizeLista();
     }
 
     /**
-     * Calcula el tiempo de espera (Waiting Time) promedio de los procesos terminados.
      * Tiempo de Espera = Tiempo de Inicio de Ejecución - Tiempo de Llegada
      */
     public double getTiempoEsperaPromedio() {
@@ -675,7 +670,7 @@ public class Engine {
         int sumaTiemposEspera = 0;
         for (int i = 0; i < procesosTerminados.sizeLista(); i++) {
             Proceso p = (Proceso) procesosTerminados.get(i);
-            sumaTiemposEspera += p.getTiempoEspera(); // Necesitas este método en Proceso.java
+            sumaTiemposEspera += p.getTiempoEspera(); // esto tambien en proceso
         }
         return (double) sumaTiemposEspera / procesosTerminados.sizeLista();
     }
@@ -684,20 +679,18 @@ public class Engine {
         if (this.consola != null) {
             SwingUtilities.invokeLater(() -> consola.agregarLinea(mensaje, color));
         }
-        System.out.println(mensaje); // Mantenemos la salida estándar para depuración
+        System.out.println(mensaje); 
     }
 
     private void log(String mensaje) {
-        // Esta versión usa un color por defecto (Blanco) cuando no se especifica uno.
         log(mensaje, Color.WHITE);
     }
     
-        /**
-     * Devuelve una nueva ListaSimple que contiene solo los procesos en estado LISTO.
+     /**
+     * Lista de procesos listos
      */
     public ListaSimple getProcesosListos() {
         ListaSimple listos = new ListaSimple();
-        // Usamos semáforo para garantizar que la lista no se modifique mientras la leemos
         try {
             semaforoGlobal.acquire();
             for (int i = 0; i < todosProcesos.sizeLista(); i++) {
@@ -715,7 +708,7 @@ public class Engine {
     }
 
     /**
-     * Devuelve una nueva ListaSimple que contiene solo los procesos en estado BLOQUEADO.
+     * Lista de procesos bloqueados
      */
     public ListaSimple getProcesosBloqueados() {
         ListaSimple bloqueados = new ListaSimple();
@@ -743,7 +736,7 @@ public class Engine {
             // Bloqueamos todo para hacer el cambio de forma segura
             semaforoGlobal.acquire();
 
-            log("🔄 Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
+            log("Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
 
             // 1. Crear una lista temporal con todos los procesos que no han terminado.
             ListaSimple procesosActivos = new ListaSimple();
@@ -781,12 +774,12 @@ public class Engine {
         }
     }*/
     
-    //Aquí cambiamos la lógica del cambio del planificador para que sus hilos no choquen al momento de cambiar de planiicador 
+    // que los hilos no choquen al momento de cambiar de planiicador 
     private void realizarCambioDePlanificador(Planificador nuevoPlanificador) {
-        // No necesita su propio try-catch-finally porque será llamado desde un lugar seguro
-        log("🔄 Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
+    
+        log("Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
 
-        // 1. Crear una lista temporal... (todo tu código actual va aquí)
+        // 1. Crear una lista temporal
         ListaSimple procesosActivos = new ListaSimple();
         for (int i = 0; i < todosProcesos.sizeLista(); i++) {
             Proceso p = (Proceso) todosProcesos.get(i);
@@ -796,16 +789,16 @@ public class Engine {
             }
         }
 
-        // 2. Detenemos el proceso...
+        // 2. Detenemos el proceso
         if (procesoEjecutandoActual != null) {
             procesoEjecutandoActual.pausarEjecucion();
             procesoEjecutandoActual = null;
         }
 
-        // 3. Reemplazamos el planificador...
+        // 3. Reemplazamos el planificador
         this.planificador = nuevoPlanificador;
 
-        // 4. Agregamos todos los procesos activos al nuevo planificador...
+        // 4. Agregamos todos los procesos activos al nuevo planificador
         for (int i = 0; i < procesosActivos.sizeLista(); i++) {
             this.planificador.agregarProceso((Proceso) procesosActivos.get(i));
         }

@@ -8,8 +8,9 @@ import javax.swing.text.*;
 import java.awt.*;
 
 /**
- * 🎮 CONSOLA PERSONALIZADA CON ESTILO GAMER
+ * CONSOLA PERSONALIZADA CON ESTILO GAMER
  * Muestra texto con colores y formato estilo terminal gaming
+ * @author Ada
  */
 public class ConsolaGamer extends JTextPane {
     private StyledDocument doc;

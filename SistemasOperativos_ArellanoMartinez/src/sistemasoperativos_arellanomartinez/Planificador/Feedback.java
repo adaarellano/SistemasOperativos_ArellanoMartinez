@@ -112,7 +112,7 @@ public class Feedback implements Planificador {
         p.setState(Proceso.Estado.EJECUTANDO);
         cambiosContexto++;
 
-        System.out.println("🎯 CPU asignado a " + p.getName() +
+        System.out.println("CPU asignado a " + p.getName() +
                            " (Cola " + colaActualEjecucion + ", Quantum=" + quantumRestante + ")");
     }
 
@@ -120,7 +120,7 @@ public class Feedback implements Planificador {
         procesosCompletados++;
         procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
         limpiarProcesoDeTodasLasColas(procesoEjecutando);
-        System.out.println("✅ " + procesoEjecutando.getName() + " terminado y limpiado");
+        System.out.println(procesoEjecutando.getName() + " terminado");
         procesoEjecutando = null;
         colaActualEjecucion = -1;
         quantumRestante = 0;
@@ -133,7 +133,7 @@ public class Feedback implements Planificador {
         if (!procesoEjecutando.isFinished() && !estaEnOtraCola(procesoEjecutando)) {
             procesoEjecutando.setState(Proceso.Estado.LISTO);
             colas[nuevaCola].insertFinal(procesoEjecutando);
-            System.out.println("🔁 " + procesoEjecutando.getName() +
+            System.out.println(procesoEjecutando.getName() +
                                " a E/S -> reinsertado en cola " + nuevaCola);
         }
         procesoEjecutando = null;
@@ -148,8 +148,8 @@ public class Feedback implements Planificador {
         if (!procesoEjecutando.isFinished() && !estaEnOtraCola(procesoEjecutando)) {
             procesoEjecutando.setState(Proceso.Estado.LISTO);
             colas[nuevaCola].insertFinal(procesoEjecutando);
-            System.out.println("⏰ " + procesoEjecutando.getName() +
-                               " bajó a cola " + nuevaCola);
+            System.out.println(procesoEjecutando.getName() +
+                               " bajo a cola " + nuevaCola);
         }
         procesoEjecutando = null;
         colaActualEjecucion = -1;
@@ -180,7 +180,7 @@ public class Feedback implements Planificador {
             if (!p.isFinished() && !estaEnOtraCola(p)) {
                 p.setState(Proceso.Estado.LISTO);
                 colas[0].insertFinal(p);
-                System.out.println("📥 " + p.getName() + " agregado a Cola 0");
+                System.out.println(p.getName() + " agregado a Cola 0");
             }
             semaforoColas.release();
         } catch (InterruptedException e) {
@@ -227,13 +227,13 @@ public class Feedback implements Planificador {
     public String getEstadoColas() {
         StringBuilder sb = new StringBuilder();
         sb.append("CPU: ").append(procesoEjecutando != null ?
-            procesoEjecutando.getName() + " (cola " + colaActualEjecucion + ")" : "LIBRE").append("\n");
+            procesoEjecutando.getName() + " (cola " + colaActualEjecucion + ")" : "Libre").append("\n");
         for (int i = 0; i < NUM_COLAS; i++) {
             sb.append("Cola ").append(i).append(": ");
             for (int j = 0; j < colas[i].sizeLista(); j++) {
                 Proceso p = (Proceso) colas[i].get(j);
                 sb.append(p.getName());
-                if (p.isFinished()) sb.append("[T]");
+                if (p.isFinished()) sb.append("terminado");
                 sb.append(" ");
             }
             sb.append("\n");

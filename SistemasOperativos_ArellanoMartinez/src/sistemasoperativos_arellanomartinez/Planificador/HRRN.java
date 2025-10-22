@@ -37,29 +37,29 @@ public class HRRN implements Planificador {
             
             ciclosTotales++;
             
-            // 1. VERIFICAR PROCESO ACTUAL
+            // 1. verifica proceso actual
             if (procesoEjecutando != null) {
                 if (procesoEjecutando.isFinished() || procesoEjecutando.estaEnES()) {
                     
                     if (procesoEjecutando.isFinished()) {
                         procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                        System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO en HRRN");
+                        System.out.println(procesoEjecutando.getName() + " terminado en HRRN");
                     } else if (procesoEjecutando.estaEnES()) {
-                        System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S");
+                        System.out.println(procesoEjecutando.getName() + " bloqueado por E/S");
                     }
                     
                     procesoEjecutando = null;
                     cambiosContexto++;
                 } 
-                // Si puede continuar, mantenerlo (HRRN no apropiativa)
+                // Si puede continuar se mantiene
                 else {
-                    System.out.println("🔄 HRRN mantiene en CPU: " + procesoEjecutando.getName());
+                    System.out.println("HRRN mantiene en CPU: " + procesoEjecutando.getName());
                     semaforoCola.release();
                     return procesoEjecutando;
                 }
             }
             
-            // 2. CALCULAR RATIO DE RESPUESTA PARA TODOS LOS PROCESOS
+            // 2. Calcular ls ratios de los procesos
             Proceso mejorProceso = calcularProcesoConMayorRatio();
             
             if (mejorProceso != null) {
@@ -122,8 +122,8 @@ public class HRRN implements Planificador {
             Proceso proceso = (Proceso) procesosListos.get(i);
             double ratio = calcularRatioRespuesta(proceso);
             
-            System.out.println("   📊 " + proceso.getName() + 
-                             " - Espera: " + (Reloj.getCurrentCycle() - proceso.getTiempoLlegada() - proceso.getTiempoEjecucionTotal()) +
+            System.out.println(proceso.getName() + 
+                             " Espera: " + (Reloj.getCurrentCycle() - proceso.getTiempoLlegada() - proceso.getTiempoEjecucionTotal()) +
                              ", Servicio: " + proceso.getTotalInstructions() +
                              ", Ratio: " + String.format("%.2f", ratio));
             
@@ -148,7 +148,6 @@ public class HRRN implements Planificador {
         }
     }
     
-    // 🔹 MÉTODOS DE LA INTERFAZ
     
     @Override
     public void agregarProceso(Proceso proceso) {
@@ -159,7 +158,7 @@ public class HRRN implements Planificador {
             procesosListos.insertFinal(proceso);
             
             double ratio = calcularRatioRespuesta(proceso);
-            System.out.println("📥 " + proceso.getName() + " agregado a HRRN" +
+            System.out.println(proceso.getName() + " agregado a HRRN" +
                              " (Ratio: " + String.format("%.2f", ratio) + ")");
             
             semaforoCola.release();
@@ -243,10 +242,10 @@ public class HRRN implements Planificador {
             semaforoCola.acquire();
             
             StringBuilder sb = new StringBuilder();
-            sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
+            sb.append("CPU: ").append(procesoEjecutando != null ? 
                 procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
             
-            sb.append("📋 Cola Listos (").append(procesosListos.sizeLista()).append("):\n");
+            sb.append("Cola Listos (").append(procesosListos.sizeLista()).append("):\n");
             if (procesosListos.sizeLista() == 0) {
                 sb.append("   Vacía");
             } else {
@@ -260,8 +259,8 @@ public class HRRN implements Planificador {
                 }
             }
             
-            sb.append("🔀 Cambios contexto: ").append(cambiosContexto);
-            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
+            sb.append("Cambios contexto: ").append(cambiosContexto);
+            sb.append("\nCiclos totales: ").append(ciclosTotales);
             
             semaforoCola.release();
             return sb.toString();
@@ -271,8 +270,7 @@ public class HRRN implements Planificador {
             return "Error al obtener estado";
         }
     }
-    
-    // 🔹 MÉTODOS PARA MONITOREO
+
     public Proceso getProcesoEjecutando() {
         return procesoEjecutando;
     }

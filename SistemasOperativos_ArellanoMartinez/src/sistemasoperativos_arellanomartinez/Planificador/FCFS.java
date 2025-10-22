@@ -10,7 +10,7 @@ import java.util.concurrent.Semaphore;
 
 /**
  * First Come First Served - Planificación no apropiativa
- * Política: Una vez que un proceso toma la CPU, la mantiene hasta terminar
+ * Una vez que un proceso toma la CPU, la mantiene hasta terminar
  * @author Ada
  */
 public class FCFS implements Planificador {
@@ -18,7 +18,7 @@ public class FCFS implements Planificador {
     private Proceso procesoEjecutando;
     private final Semaphore semaforoCola;
     
-    // Métricas
+    // metricas
     private int cambiosContexto;
     private int ciclosTotales;
     
@@ -37,16 +37,16 @@ public class FCFS implements Planificador {
             
             ciclosTotales++;
             
-            // 🔄 1. VERIFICAR PROCESO ACTUAL
+            // 1. verificar el proceso actual
             if (procesoEjecutando != null) {
-                // Si terminó o fue a E/S, limpiarlo
+                
                 if (procesoEjecutando.isFinished() || procesoEjecutando.estaEnES()) {
                     
                     if (procesoEjecutando.isFinished()) {
                         procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                        System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO en FCFS");
+                        System.out.println(procesoEjecutando.getName() + " TERMINADO en FCFS");
                     } else if (procesoEjecutando.estaEnES()) {
-                        System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S");
+                        System.out.println(procesoEjecutando.getName() + " BLOQUEADO por E/S");
                     }
                     
                     procesoEjecutando = null;
@@ -54,7 +54,7 @@ public class FCFS implements Planificador {
                 } 
                 // Si puede continuar, mantenerlo (FCFS no apropiativa)
                 else {
-                    System.out.println("🔄 FCFS mantiene en CPU: " + procesoEjecutando.getName());
+                    System.out.println("FCFS mantiene en CPU: " + procesoEjecutando.getName());
                     semaforoCola.release();
                     return procesoEjecutando;
                 }
@@ -71,7 +71,7 @@ public class FCFS implements Planificador {
                 
                 procesoEjecutando.setState(Proceso.Estado.EJECUTANDO);
                 
-                System.out.println("🎯 FCFS selecciona NUEVO proceso: " + procesoEjecutando.getName());
+                System.out.println("FCFS selecciona NUEVO proceso: " + procesoEjecutando.getName());
                 cambiosContexto++;
             }
             
@@ -92,7 +92,7 @@ public class FCFS implements Planificador {
             proceso.setState(Proceso.Estado.LISTO);
             colaListos.encolar(proceso);
             
-            System.out.println("📥 " + proceso.getName() + " agregado a FCFS");
+            System.out.println(proceso.getName() + " agregado a FCFS");
             
             semaforoCola.release();
             
@@ -109,7 +109,7 @@ public class FCFS implements Planificador {
             if (procesoEjecutando == proceso) {
                 procesoEjecutando = null;
                 cambiosContexto++;
-                System.out.println("🗑️ " + proceso.getName() + " removido de CPU");
+                System.out.println(proceso.getName() + " removido de CPU");
             }
             
             // Eliminar de cola de listos
@@ -119,7 +119,7 @@ public class FCFS implements Planificador {
                 if (p != proceso) {
                     temp.encolar(p);
                 } else {
-                    System.out.println("🗑️ " + p.getName() + " removido de cola FCFS");
+                    System.out.println(p.getName() + " removido de cola FCFS");
                 }
             }
             while (!temp.estaVacia()) {

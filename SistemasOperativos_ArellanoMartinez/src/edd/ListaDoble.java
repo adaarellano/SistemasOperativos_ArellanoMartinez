@@ -8,7 +8,7 @@ import edd.Nodo;
 
 /**
  *
- * @author guante
+ * @author Ada y Day
  */
 public class ListaDoble {
     private Nodo head;

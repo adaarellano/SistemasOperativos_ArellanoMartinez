@@ -11,13 +11,12 @@ import java.util.concurrent.Semaphore;
 
 /**
  * SPN (Shortest Process Next) - Planificación no apropiativa CORREGIDA
+ * @author Day
  */
 public class SPN implements Planificador {
     private ListaSimple procesosListos;
     private Proceso procesoEjecutando;
     private final Semaphore semaforoCola;
-    
-    // Métricas
     private int cambiosContexto;
     private int ciclosTotales;
     private int procesosCompletados;
@@ -38,37 +37,36 @@ public class SPN implements Planificador {
             
             ciclosTotales++;
             
-            // 1. VERIFICAR SI EL PROCESO ACTUAL SIGUE EJECUTÁNDOSE
+            // 1. verifica si el proceso se sigue ejecutando (el actual)
             if (procesoEjecutando != null) {
                 if (procesoEjecutando.isFinished()) {
-                    // 🔥 CORRECCIÓN: Proceso terminado - liberar CPU
-                    System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO en SPN");
+                    // liberar CPU
+                    System.out.println(procesoEjecutando.getName() + " TERMINADO en SPN");
                     procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
                     procesosCompletados++;
                     procesoEjecutando = null;
                     cambiosContexto++;
                 } else if (procesoEjecutando.estaEnES()) {
                     // Proceso fue a E/S
-                    System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S");
+                    System.out.println(procesoEjecutando.getName() + " BLOQUEADO por E/S");
                     procesoEjecutando = null;
                     cambiosContexto++;
                 } else {
-                    // 🔥 CORRECCIÓN: SPN es NO APROPITATIVO - continuar con el mismo proceso
-                    System.out.println("🔄 SPN continúa: " + procesoEjecutando.getName() + 
+                    System.out.println("SPN continua: " + procesoEjecutando.getName() + 
                                      " (restantes: " + procesoEjecutando.getInstruccionesRestantes() + ")");
                     semaforoCola.release();
                     return procesoEjecutando;
                 }
             }
             
-            // 2. SELECCIONAR NUEVO PROCESO (el más corto de los DISPONIBLES)
+            // 2. seleccionar nuevo p (el mas corto de los dispo)
             Proceso mejorProceso = encontrarProcesoMasCortoDisponible();
             
             if (mejorProceso != null) {
                 procesoEjecutando = mejorProceso;
                 removerDeLista(mejorProceso);
                 
-                // Registrar inicio de ejecución (si es primera vez)
+                // registrar inicio de ejecucion (si es primera vez)
                 if (procesoEjecutando.getTiempoInicioEjecucion() == -1) {
                     procesoEjecutando.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                 }
@@ -76,11 +74,11 @@ public class SPN implements Planificador {
                 procesoEjecutando.setState(Proceso.Estado.EJECUTANDO);
                 cambiosContexto++;
                 
-                System.out.println("🎯 SPN selecciona NUEVO: " + procesoEjecutando.getName() + 
+                System.out.println("SPN selecciona NUEVO: " + procesoEjecutando.getName() + 
                                  " (total: " + procesoEjecutando.getTotalInstructions() + " instrucciones)");
                 
             } else {
-                System.out.println("💤 SPN: No hay procesos listos disponibles");
+                System.out.println("SPN: No hay procesos listos disponibles");
                 procesoEjecutando = null;
             }
             
@@ -94,7 +92,7 @@ public class SPN implements Planificador {
     }
     
     /**
-     * 🔥 CORRECCIÓN: Encuentra el proceso más corto que NO esté terminado
+     * encuentra el proceso mas corto que NO esté terminado
      */
     private Proceso encontrarProcesoMasCortoDisponible() {
         Proceso mejor = null;
@@ -116,7 +114,7 @@ public class SPN implements Planificador {
     }
     
     /**
-     * 🔥 CORRECCIÓN: Remueve un proceso específico de la lista
+     * Remueve un proceso específico de la lista
      */
     private void removerDeLista(Proceso proceso) {
         for (int i = 0; i < procesosListos.sizeLista(); i++) {
@@ -133,15 +131,15 @@ public class SPN implements Planificador {
         try {
             semaforoCola.acquire();
             
-            // 🔥 CORRECCIÓN: Solo agregar si no está terminado
+            // Solo agregar si no está terminado
             if (!proceso.isFinished()) {
                 proceso.setState(Proceso.Estado.LISTO);
                 procesosListos.insertFinal(proceso);
                 
-                System.out.println("📥 " + proceso.getName() + " agregado a SPN" +
+                System.out.println(proceso.getName() + " agregado a SPN" +
                                  " (total: " + proceso.getTotalInstructions() + " instrucciones)");
             } else {
-                System.out.println("⚠️  " + proceso.getName() + " ya terminado - no se agrega a SPN");
+                System.out.println(proceso.getName() + " ya terminado - no se agrega a SPN");
             }
             
             semaforoCola.release();
@@ -200,7 +198,7 @@ public class SPN implements Planificador {
         try {
             semaforoCola.acquire();
             
-            // 🔥 CORRECCIÓN: Verificar procesos que no estén terminados
+            // verificar procesos que no estén terminados
             boolean hayProcesosListos = false;
             for (int i = 0; i < procesosListos.sizeLista(); i++) {
                 Proceso p = (Proceso) procesosListos.get(i);
@@ -226,11 +224,11 @@ public class SPN implements Planificador {
             semaforoCola.acquire();
             
             StringBuilder sb = new StringBuilder();
-            sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
+            sb.append("CPU: ").append(procesoEjecutando != null ? 
                 procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
             
-            // 🔥 CORRECCIÓN: Mostrar solo procesos no terminados
-            sb.append("📋 Cola Listos (").append(contarProcesosListosValidos()).append("): ");
+            // Mostrar solo procesos no terminados
+            sb.append("Cola Listos (").append(contarProcesosListosValidos()).append("): ");
             if (contarProcesosListosValidos() == 0) {
                 sb.append("Vacía");
             } else {
@@ -242,9 +240,9 @@ public class SPN implements Planificador {
                 }
             }
             
-            sb.append("\n🔀 Cambios contexto: ").append(cambiosContexto);
-            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
-            sb.append("\n✅ Procesos completados: ").append(procesosCompletados);
+            sb.append("\nCambios contexto: ").append(cambiosContexto);
+            sb.append("\nCiclos totales: ").append(ciclosTotales);
+            sb.append("\nProcesos completados: ").append(procesosCompletados);
             
             semaforoCola.release();
             return sb.toString();

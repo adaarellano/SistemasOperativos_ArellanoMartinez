@@ -45,7 +45,6 @@ public class SRT implements Planificador {
             
             // 2. VERIFICAR SI HAY CAMBIO DE PROCESO (apropiativo)
             if (mejorProceso != null && mejorProceso != procesoEjecutando) {
-                // 🔥 CAMBIO APROPITIVO: Desalojar proceso actual si hay uno mejor
                 if (procesoEjecutando != null) {
                     // Reinsertar el proceso actual a la cola (no terminó, solo fue desalojado)
                     procesosListos.insertFinal(procesoEjecutando);
@@ -66,12 +65,12 @@ public class SRT implements Planificador {
                 procesoEjecutando.setState(Proceso.Estado.EJECUTANDO);
                 cambiosContexto++;
                 
-                System.out.println("🎯 SRT selecciona: " + procesoEjecutando.getName() + 
+                System.out.println("SRT selecciona: " + procesoEjecutando.getName() + 
                                  " (restantes: " + procesoEjecutando.getInstruccionesRestantes() + ")");
                 
             } else if (procesoEjecutando != null) {
                 // Mismo proceso, continuar ejecución
-                System.out.println("🔄 SRT mantiene: " + procesoEjecutando.getName() + 
+                System.out.println("SRT mantiene: " + procesoEjecutando.getName() + 
                                  " (restantes: " + procesoEjecutando.getInstruccionesRestantes() + ")");
             } else if (mejorProceso != null) {
                 // Primer proceso a ejecutar
@@ -85,10 +84,10 @@ public class SRT implements Planificador {
                 procesoEjecutando.setState(Proceso.Estado.EJECUTANDO);
                 cambiosContexto++;
                 
-                System.out.println("🎯 SRT selecciona: " + procesoEjecutando.getName() + 
+                System.out.println("SRT selecciona: " + procesoEjecutando.getName() + 
                                  " (restantes: " + procesoEjecutando.getInstruccionesRestantes() + ")");
             } else {
-                System.out.println("💤 SRT: No hay procesos listos");
+                System.out.println("SRT: No hay procesos listos");
             }
             
             // 3. VERIFICAR SI EL PROCESO ACTUAL TERMINÓ O FUE A E/S
@@ -97,9 +96,9 @@ public class SRT implements Planificador {
                 
                 if (procesoEjecutando.isFinished()) {
                     procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
-                    System.out.println("✅ " + procesoEjecutando.getName() + " TERMINADO en SRT");
+                    System.out.println(procesoEjecutando.getName() + " TERMINADO en SRT");
                 } else if (procesoEjecutando.estaEnES()) {
-                    System.out.println("🔄 " + procesoEjecutando.getName() + " BLOQUEADO por E/S");
+                    System.out.println(procesoEjecutando.getName() + " BLOQUEADO por E/S");
                 }
                 
                 procesoEjecutando = null;
@@ -165,7 +164,7 @@ public class SRT implements Planificador {
             proceso.setState(Proceso.Estado.LISTO);
             procesosListos.insertFinal(proceso);
             
-            System.out.println("📥 " + proceso.getName() + " agregado a SRT" +
+            System.out.println(proceso.getName() + " agregado a SRT" +
                              " (restantes: " + proceso.getInstruccionesRestantes() + ")");
             
             semaforoCola.release();
@@ -249,10 +248,10 @@ public class SRT implements Planificador {
             semaforoCola.acquire();
             
             StringBuilder sb = new StringBuilder();
-            sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
+            sb.append("CPU: ").append(procesoEjecutando != null ? 
                 procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
             
-            sb.append("📋 Cola Listos (").append(procesosListos.sizeLista()).append("): ");
+            sb.append("Cola Listos (").append(procesosListos.sizeLista()).append("): ");
             if (procesosListos.sizeLista() == 0) {
                 sb.append("Vacía");
             } else {
@@ -262,9 +261,9 @@ public class SRT implements Planificador {
                 }
             }
             
-            sb.append("\n🔀 Cambios contexto: ").append(cambiosContexto);
-            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
-            sb.append("\n⚡ Desalojos apropiativos: ").append(desalojosApropiativos);
+            sb.append("\nCambios contexto: ").append(cambiosContexto);
+            sb.append("\nCiclos totales: ").append(ciclosTotales);
+            sb.append("\nDesalojos apropiativos: ").append(desalojosApropiativos);
             
             semaforoCola.release();
             return sb.toString();

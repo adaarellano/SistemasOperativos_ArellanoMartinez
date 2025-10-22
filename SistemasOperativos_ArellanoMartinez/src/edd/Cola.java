@@ -8,7 +8,7 @@ import edd.Nodo;
 
 /**
  *
- * @author Alejandro
+ * @author Day Y Ada
  */
 public class Cola {
     private Nodo frente;      // Puntero al primer elemento de la cola (head)

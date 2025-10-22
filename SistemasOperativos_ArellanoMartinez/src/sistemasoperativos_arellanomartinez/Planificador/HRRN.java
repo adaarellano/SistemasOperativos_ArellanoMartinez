@@ -247,7 +247,7 @@ public class HRRN implements Planificador {
             
             sb.append("Cola Listos (").append(procesosListos.sizeLista()).append("):\n");
             if (procesosListos.sizeLista() == 0) {
-                sb.append("   Vacía");
+                sb.append("   Vacia");
             } else {
                 for (int i = 0; i < procesosListos.sizeLista(); i++) {
                     Proceso p = (Proceso) procesosListos.get(i);

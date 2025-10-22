@@ -6,8 +6,8 @@ package sistemasoperativos_arellanomartinez.Planificador;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
 
 /**
- * Define el contrato que todos los algoritmos de planificación deben seguir. 
- * Esto permite cambiar dinámicamente entre diferentes políticas.
+ * Define el contrato que todos los algoritmos de planificacion deben seguir. 
+ * Esto permite cambiar dinamicamente entre diferentes politicas.
  * @author Ada y Day
  */
 

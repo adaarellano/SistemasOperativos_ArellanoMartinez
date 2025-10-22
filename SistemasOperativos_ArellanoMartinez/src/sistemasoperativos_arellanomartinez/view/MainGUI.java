@@ -12,8 +12,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 import sistemasoperativos_arellanomartinez.Controller.Engine;
 import sistemasoperativos_arellanomartinez.Planificador.*;
 import sistemasoperativos_arellanomartinez.Simulador.Proceso;
@@ -460,12 +458,12 @@ public class MainGUI extends JFrame {
             ConfiguracionSimulacion config = new ConfiguracionSimulacion();
             config.duracionCicloMs = Reloj.getCycleDurationMs();
             
-            // Convertimos tu ListaSimple a una List temporal para Gson
-            List<ProcesoData> dataList = new ArrayList<>();
+            // Convertimos tu ListaSimple a un array para Gson
+            ProcesoData[] dataArray = new ProcesoData[procesosParaSimular.sizeLista()];
             for (int i = 0; i < procesosParaSimular.sizeLista(); i++) {
-                dataList.add(new ProcesoData((Proceso) procesosParaSimular.get(i)));
+                dataArray[i] = new ProcesoData((Proceso) procesosParaSimular.get(i));
             }
-            config.procesos = dataList;
+            config.procesos = dataArray;
 
             // Guardamos el objeto completo como JSON
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -488,17 +486,14 @@ public class MainGUI extends JFrame {
 
                 // Cargamos la duracion del ciclo
                 Reloj.setCycleDurationMs(config.duracionCicloMs);
-              // Actualizar la posicion del slider para que refleje el valor cargado
-                // sliderVelocidad.setValue(config.duracionCicloMs);
 
                 // Limpiamos la lista actual y la llenamos con los datos cargados
-                // Esto respeta la restriccion de NO usar ArrayList en tu logica principal
                 this.procesosParaSimular.clear(); 
                 for (ProcesoData data : config.procesos) {
                     Proceso p = new Proceso(data.nombre, data.totalInstructions, data.isCpuBound, data.ciclosExcepcionES, data.duracionES, 0);
                     this.procesosParaSimular.insertFinal(p);
                 }
-                consola.agregarLinea(config.procesos.size() + " procesos y configuracion cargados.", Color.CYAN);
+                consola.agregarLinea(config.procesos.length + " procesos y configuracion cargados.", Color.CYAN);
             } catch (Exception e) {
                 consola.agregarLinea("Error al cargar el archivo: " + e.getMessage(), Color.RED);
             }
@@ -566,5 +561,31 @@ public class MainGUI extends JFrame {
                 new MainGUI().setVisible(true);
             }
         });
+    }
+}
+
+// Clases auxiliares para la serialización
+class ConfiguracionSimulacion {
+    int duracionCicloMs;
+    ProcesoData[] procesos;
+}
+
+class ProcesoData {
+    String nombre;
+    int totalInstructions;
+    boolean isCpuBound;
+    int ciclosExcepcionES;
+    int duracionES;
+
+    public ProcesoData() {
+        // Constructor vacío necesario para Gson
+    }
+
+    public ProcesoData(Proceso proceso) {
+        this.nombre = proceso.getName();
+        this.totalInstructions = proceso.getTotalInstructions();
+        this.isCpuBound = proceso.isCpuBound();
+        this.ciclosExcepcionES = proceso.getProximaExcepcionES();
+        this.duracionES = proceso.getDuracionES();
     }
 }

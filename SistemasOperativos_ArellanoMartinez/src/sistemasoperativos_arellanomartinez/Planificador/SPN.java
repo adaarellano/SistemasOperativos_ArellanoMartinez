@@ -10,7 +10,7 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import java.util.concurrent.Semaphore;
 
 /**
- * SPN (Shortest Process Next) - Planificación no apropiativa CORREGIDA
+ * SPN (Shortest Process Next) - Planificacion no apropiativa CORREGIDA
  * @author Day
  */
 public class SPN implements Planificador {
@@ -92,13 +92,13 @@ public class SPN implements Planificador {
     }
     
     /**
-     * encuentra el proceso mas corto que NO esté terminado
+     * encuentra el proceso mas corto que NO este terminado
      */
     private Proceso encontrarProcesoMasCortoDisponible() {
         Proceso mejor = null;
         int menorTotal = Integer.MAX_VALUE;
         
-        // Buscar en procesos listos que no estén terminados
+        // Buscar en procesos listos que no esten terminados
         for (int i = 0; i < procesosListos.sizeLista(); i++) {
             Proceso p = (Proceso) procesosListos.get(i);
             if (p != null && !p.isFinished() && !p.estaEnES()) {
@@ -114,7 +114,7 @@ public class SPN implements Planificador {
     }
     
     /**
-     * Remueve un proceso específico de la lista
+     * Remueve un proceso especifico de la lista
      */
     private void removerDeLista(Proceso proceso) {
         for (int i = 0; i < procesosListos.sizeLista(); i++) {
@@ -131,7 +131,7 @@ public class SPN implements Planificador {
         try {
             semaforoCola.acquire();
             
-            // Solo agregar si no está terminado
+            // Solo agregar si no esta terminado
             if (!proceso.isFinished()) {
                 proceso.setState(Proceso.Estado.LISTO);
                 procesosListos.insertFinal(proceso);
@@ -198,7 +198,7 @@ public class SPN implements Planificador {
         try {
             semaforoCola.acquire();
             
-            // verificar procesos que no estén terminados
+            // verificar procesos que no esten terminados
             boolean hayProcesosListos = false;
             for (int i = 0; i < procesosListos.sizeLista(); i++) {
                 Proceso p = (Proceso) procesosListos.get(i);
@@ -230,7 +230,7 @@ public class SPN implements Planificador {
             // Mostrar solo procesos no terminados
             sb.append("Cola Listos (").append(contarProcesosListosValidos()).append("): ");
             if (contarProcesosListosValidos() == 0) {
-                sb.append("Vacía");
+                sb.append("Vacia");
             } else {
                 for (int i = 0; i < procesosListos.sizeLista(); i++) {
                     Proceso p = (Proceso) procesosListos.get(i);
@@ -254,7 +254,7 @@ public class SPN implements Planificador {
     }
     
     /**
-     * 🔥 CORRECCIÓN: Contar solo procesos válidos en la cola
+     *Contar solo procesos validos en la cola
      */
     private int contarProcesosListosValidos() {
         int count = 0;
@@ -267,12 +267,12 @@ public class SPN implements Planificador {
         return count;
     }
     
-    // Resto de métodos se mantienen igual...
+    // Resto de metodos se mantienen igual...
     public Proceso getProcesoEjecutando() { return procesoEjecutando; }
     public int getCambiosContexto() { return cambiosContexto; }
     public int getProcesosCompletados() { return procesosCompletados; }
     
-    // Métodos de la interfaz que no requieren cambios
+    // Metodos de la interfaz que no requieren cambios
     @Override public void actualizarCiclo(int ciclo) {}
     @Override public String getNombreAlgoritmo() { return "SPN (Shortest Process Next)"; }
     @Override public void reorganizarColas() {}

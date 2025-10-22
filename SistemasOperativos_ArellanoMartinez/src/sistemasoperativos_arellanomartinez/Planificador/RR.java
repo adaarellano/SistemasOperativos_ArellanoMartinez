@@ -10,7 +10,7 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import java.util.concurrent.Semaphore;
 
 /**
- * Round Robin - Planificación apropiativa con quantum
+ * Round Robin - Planificacion apropiativa con quantum
  * Política: Cada proceso ejecuta un quantum fijo, luego pasa al siguiente
  * @author Day
  */
@@ -64,7 +64,7 @@ public class RR implements Planificador {
                     cambiosContexto++;
                     necesitaReplanificacion = true;
                 } 
-                // Verificar si expiró el quantum
+                // Verificar si expiro el quantum
                 else if (contadorQuantum >= quantum) {
                     System.out.println("Quantum expirado para " + procesoEjecutando.getName());
                     // Reinsertar proceso actual al final de la cola
@@ -83,7 +83,7 @@ public class RR implements Planificador {
                 if (!colaListos.estaVacia()) {
                     procesoEjecutando = (Proceso) colaListos.desencolar();
                     
-                    // Registrar inicio de ejecución (si es primera vez)
+                    // Registrar inicio de ejecucion (si es primera vez)
                     if (procesoEjecutando.getTiempoInicioEjecucion() == -1) {
                         procesoEjecutando.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                     }
@@ -232,7 +232,7 @@ public class RR implements Planificador {
             
             sb.append("Cola Listos (").append(colaListos.getTamano()).append("): ");
             if (colaListos.estaVacia()) {
-                sb.append("Vacía");
+                sb.append("Vacia");
             } else {
                 Cola temp = new Cola();
                 while (!colaListos.estaVacia()) {

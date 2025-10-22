@@ -11,7 +11,7 @@ import java.util.concurrent.Semaphore;
 
 /**
  * SRT (Shortest Remaining Time) - Planificación apropiativa
- * Política: Siempre ejecuta el proceso con menos instrucciones restantes
+ * Politica: Siempre ejecuta el proceso con menos instrucciones restantes
  * @author Ada
  */
 public class SRT implements Planificador {
@@ -19,7 +19,7 @@ public class SRT implements Planificador {
     private Proceso procesoEjecutando;
     private final Semaphore semaforoCola;
     
-    // Métricas
+    // Metricas
     private int cambiosContexto;
     private int ciclosTotales;
     private int desalojosApropiativos;
@@ -253,7 +253,7 @@ public class SRT implements Planificador {
             
             sb.append("Cola Listos (").append(procesosListos.sizeLista()).append("): ");
             if (procesosListos.sizeLista() == 0) {
-                sb.append("Vacía");
+                sb.append("Vacia");
             } else {
                 for (int i = 0; i < procesosListos.sizeLista(); i++) {
                     Proceso p = (Proceso) procesosListos.get(i);
@@ -274,7 +274,7 @@ public class SRT implements Planificador {
         }
     }
     
-    // 🔹 MÉTODOS ESPECÍFICOS DE SRT
+    
     
     public Proceso getProcesoEjecutando() {
         return procesoEjecutando;

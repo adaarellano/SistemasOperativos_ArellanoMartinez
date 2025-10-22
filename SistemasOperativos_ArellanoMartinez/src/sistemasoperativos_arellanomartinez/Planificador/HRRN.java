@@ -10,7 +10,7 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import java.util.concurrent.Semaphore;
 
 /**
- * Highest Response Ratio Next - Planificación no apropiativa
+ * Highest Response Ratio Next - Planificacion no apropiativa
  * @author Ada
  */
 public class HRRN implements Planificador {
@@ -18,7 +18,7 @@ public class HRRN implements Planificador {
     private Proceso procesoEjecutando;
     private final Semaphore semaforoCola;
     
-    // Métricas
+    // Metricas
     private int cambiosContexto;
     private int ciclosTotales;
     
@@ -66,7 +66,7 @@ public class HRRN implements Planificador {
                 procesoEjecutando = mejorProceso;
                 removerDeLista(mejorProceso);
                 
-                // Registrar inicio de ejecución (si es primera vez)
+                // Registrar inicio de ejecucion (si es primera vez)
                 if (procesoEjecutando.getTiempoInicioEjecucion() == -1) {
                     procesoEjecutando.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                 }
@@ -76,7 +76,7 @@ public class HRRN implements Planificador {
                 
                 // Calcular ratio para mostrar en debug
                 double ratio = calcularRatioRespuesta(mejorProceso);
-                System.out.println("🎯 HRRN selecciona: " + mejorProceso.getName() + 
+                System.out.println("HRRN selecciona: " + mejorProceso.getName() + 
                                  " (Ratio: " + String.format("%.2f", ratio) + ")");
             } else {
                 System.out.println("💤 HRRN: No hay procesos listos");

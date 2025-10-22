@@ -22,9 +22,9 @@ import sistemasoperativos_arellanomartinez.Controller.*;
 import edd.ListaSimple;
 
 /**
- * VENTANA PRINCIPAL CON ESTILO GAMER
- * Interfaz gráfica principal del simulador de Sistemas Operativos
- * @author Day
+ * VENTANA PRINCIPAL
+ * Interfaz grafica principal
+ * @author Day y Ada
  */
 public class MainGUI extends JFrame {
     private ConsolaGamer consola;
@@ -39,7 +39,7 @@ public class MainGUI extends JFrame {
     private final Color COLOR_BOTON = new Color(0, 150, 255);
     private final Color COLOR_TEXTO = new Color(0, 255, 200);
     
-    // --- NUEVOS COMPONENTES PARA EL DASHBOARD ---
+    //
     private DefaultListModel<String> modeloListaListos;
     private JList<String> listaListos;
     
@@ -50,7 +50,7 @@ public class MainGUI extends JFrame {
     private JLabel labelProcesoCPU;
     
     public MainGUI() {
-        this.procesosParaSimular = new ListaSimple(); // <-- INICIALIZA LA LISTA
+        this.procesosParaSimular = new ListaSimple(); // INICIALIZA LA LISTA
         configurarVentana();
         crearComponentes();
         agregarEventos();
@@ -68,10 +68,10 @@ public class MainGUI extends JFrame {
     }
     
     private void crearComponentes() {
-        // 🎯 PANEL SUPERIOR - TÍTULO
+        // panel superior titulo
         JPanel panelTitulo = crearPanelTitulo();
         
-        // --- NUEVO: Panel principal para el dashboard ---
+        // Panel principal para el dashboard 
         JPanel panelDashboard = new JPanel(new GridLayout(1, 3, 10, 10)); // 1 fila, 3 columnas
         panelDashboard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panelDashboard.setBackground(COLOR_FONDO);
@@ -86,19 +86,19 @@ public class MainGUI extends JFrame {
         panelCentro.add(crearPanelCola("Procesos Bloqueados"));
         panelDashboard.add(panelCentro);
 
-        // Columna 3: Información del PCB y Consola de Logs
+        // Columna 3: Informacion del PCB y Consola de Logs
         JPanel panelDerecha = new JPanel(new BorderLayout(10, 10));
         panelDerecha.setOpaque(false);
         panelDerecha.add(crearPanelInfoPCB(), BorderLayout.NORTH);
 
-        // 🎯 PANEL CENTRAL - CONSOLA GAMER
+        // panel central
         consola = new ConsolaGamer();
         JScrollPane scrollConsola = new JScrollPane(consola);
         scrollConsola.setBorder(BorderFactory.createLineBorder(COLOR_BOTON, 2));
         panelDerecha.add(scrollConsola, BorderLayout.CENTER);
         panelDashboard.add(panelDerecha);
         
-        // 🎯 PANEL INFERIOR - BOTONES 
+        // panel inferior donde estan los botones
         JPanel panelBotones = crearPanelBotones();
         
         // Agregar componentes a la ventana
@@ -108,7 +108,7 @@ public class MainGUI extends JFrame {
     }
     
     private JPanel crearPanelCola(String titulo) {
-        // Inicialización del modelo y la lista
+        // Inicializacion del modelo y la lista
         DefaultListModel<String> modelo = new DefaultListModel<>();
         JList<String> lista = new JList<>(modelo);
 
@@ -141,7 +141,7 @@ public class MainGUI extends JFrame {
     private JPanel crearPanelCPU() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GREEN), "CPU en Ejecución", 0, 0, new Font("Consolas", Font.BOLD, 16), Color.GREEN));
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GREEN), "CPU en Ejecucion", 0, 0, new Font("Consolas", Font.BOLD, 16), Color.GREEN));
 
         labelProcesoCPU = new JLabel("LIBRE", SwingConstants.CENTER);
         labelProcesoCPU.setFont(new Font("Consolas", Font.BOLD, 20));
@@ -194,8 +194,8 @@ public class MainGUI extends JFrame {
         cargar = crearBotonGamer("Cargar archivo");
         btnSalir = crearBotonGamer("🚪 SALIR");
 
-        // Botón para iniciar la simulación
-        btnIniciar = crearBotonGamer("▶ Iniciar Simulación");
+        // Boton para iniciar la simulacion
+        btnIniciar = crearBotonGamer("▶ Iniciar Simulacion");
 
         // Menú desplegable para seleccionar el algoritmo
         selectorAlgoritmo = new JComboBox<>();
@@ -255,7 +255,7 @@ public class MainGUI extends JFrame {
     
     private void agregarEventos() {
         btnIniciar.addActionListener(e -> {
-        // Si no hay una simulación activa, la iniciamos
+        // Si no hay una simulacion activa, la iniciamos
         if (motorSimulacionActual == null || !motorSimulacionActual.isSimulacionActiva()) {
             ejecutarSimulacion();
         }
@@ -263,7 +263,7 @@ public class MainGUI extends JFrame {
         
         // --- Evento del menú desplegable ---
         selectorAlgoritmo.addActionListener(e -> {
-            // Solo cambia el algoritmo si la simulación YA está en curso
+            // Solo cambia el algoritmo si la simulacion ya esta en curso
             if (motorSimulacionActual != null && motorSimulacionActual.isSimulacionActiva()) {
                 Planificador nuevoPlanificador = crearPlanificadorDesdeSelector();
                 motorSimulacionActual.setPlanificador(nuevoPlanificador);
@@ -274,7 +274,7 @@ public class MainGUI extends JFrame {
         guardar.addActionListener(e -> guardarConfiguracion());
         cargar.addActionListener(e -> cargarConfiguracion());
         btnSalir.addActionListener(e -> {
-            consola.agregarLinea("👋 ¡Hasta la próxima, gamer!", Color.ORANGE);
+            consola.agregarLinea("👋 ¡Hasta la proxima!", Color.ORANGE);
             try { Thread.sleep(1000); } catch (Exception ex) {}
             System.exit(0);
         });
@@ -289,7 +289,7 @@ public class MainGUI extends JFrame {
         
     }
     
-    // 1. Añade este nuevo método auxiliar
+    // 1. Añade este nuevo metodo auxiliar
     private Planificador crearPlanificadorDesdeSelector() {
         String seleccion = (String) selectorAlgoritmo.getSelectedItem();
         switch (seleccion) {
@@ -321,24 +321,23 @@ public class MainGUI extends JFrame {
         motorSimulacionActual.detenerSimulacion();
         }
         if (this.procesosParaSimular.sizeLista() == 0) {
-        consola.agregarLinea("⚠️ No hay procesos. Añade o carga procesos antes de simular.", Color.ORANGE);
+        consola.agregarLinea("No hay procesos. Añade o carga procesos antes de simular.", Color.ORANGE);
         return;
         }
         
-        // Obtenemos el planificador inicial desde el selector que el usuario eligió.
+        // Obtenemos el planificador inicial desde el selector que el usuario eligio.
         Planificador planificadorInicial = crearPlanificadorDesdeSelector();
         new Thread(() -> {
             try {
-                // 1. Crear el motor pasándole el planificador y la consola
+                // 1. Crear el motor pasandole el planificador y la consola
                 motorSimulacionActual = new Engine(planificadorInicial, this.consola);
                 SwingUtilities.invokeLater(() -> {
                     consola.limpiar();
-                    consola.agregarLinea("🚀 INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
-                    consola.agregarLinea("📦 Cargando " + this.procesosParaSimular.sizeLista() + " procesos definidos por el usuario...", Color.WHITE);
+                    consola.agregarLinea("INICIANDO SIMULACION: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
+                    consola.agregarLinea("Cargando " + this.procesosParaSimular.sizeLista() + " procesos definidos por el usuario...", Color.WHITE);
                     consola.agregarSeparador();
                 });
 
-                // --- ESTE BLOQUE AHORA USA TU LISTA ---
                 for (int i = 0; i < this.procesosParaSimular.sizeLista(); i++) {
                 Proceso pOriginal = (Proceso) this.procesosParaSimular.get(i);
                 Proceso pCopia = new Proceso(pOriginal.getName(), pOriginal.getTotalInstructions(), pOriginal.isCpuBound(), pOriginal.getProximaExcepcionES(), pOriginal.getDuracionES(), i);
@@ -346,7 +345,6 @@ public class MainGUI extends JFrame {
             }
             
                 motorSimulacionActual.iniciarSimulacion();
-            // --- BUCLE DE ACTUALIZACIÓN EN TIEMPO REAL ---
                 while (motorSimulacionActual.isSimulacionActiva()) {
                 actualizarDashboard();
                 try {
@@ -356,14 +354,13 @@ public class MainGUI extends JFrame {
                     break;
                 }
                 }
-                // Pequeña pausa final para asegurar la última actualización
+                // Pequeña pausa final para asegurar la última actualizacion
                 Thread.sleep(200);
                 actualizarDashboard();
             
             } catch (Exception e) {
-                // Este es tu bloque catch, déjalo como está
                 SwingUtilities.invokeLater(() -> {
-                    consola.agregarLinea("❌ Error inesperado: " + e.getMessage(), Color.RED);
+                    consola.agregarLinea("Error inesperado: " + e.getMessage(), Color.RED);
                 });
                 e.printStackTrace();
             } finally {
@@ -372,12 +369,12 @@ public class MainGUI extends JFrame {
 
                     // Se formatea el string con los resultados finales
                     final String resultados = String.format(
-                        "📊 MÉTRICAS FINALES (%s):\n" +
+                        "📊 METRICAS FINALES (%s):\n" +
                         "   • Throughput: %.4f procesos/ciclo\n" +
-                        "   • Utilización de CPU: %.2f%%\n" +
+                        "   • Utilizacion de CPU: %.2f%%\n" +
                         "   • Tiempo de Retorno Promedio: %.2f ciclos\n" +
                         "   • Tiempo de Espera Promedio: %.2f ciclos",
-                        // --- CORRECCIÓN 4: Usamos planificadorInicial de nuevo ---
+                        // --- CORRECCION 4: Usamos planificadorInicial de nuevo ---
                         motorSimulacionActual.getPlanificador().getNombreAlgoritmo(),
                         motorSimulacionActual.getThroughput(),
                         motorSimulacionActual.getUtilizacionCPU(),
@@ -388,9 +385,9 @@ public class MainGUI extends JFrame {
                     // Se actualiza la GUI de forma segura
                     SwingUtilities.invokeLater(() -> {
                         consola.agregarSeparador();
-                        consola.agregarLinea("🎉 SIMULACIÓN COMPLETADA", Color.GREEN);
+                        consola.agregarLinea("SIMULACION COMPLETADA", Color.GREEN);
                         consola.agregarLinea(resultados, Color.YELLOW);
-                        consola.agregarLinea("💡 Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
+                        consola.agregarLinea("Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
                     });
                 }
             }
@@ -405,7 +402,7 @@ public class MainGUI extends JFrame {
     JTextField ciclosExcepcionField = new JTextField("0");
     JTextField duracionESField = new JTextField("0");
 
-    // Lógica para habilitar/deshabilitar campos de E/S
+    // Logica para habilitar/deshabilitar campos de E/S
     esCpuBoundCheck.addActionListener(e -> {
         boolean esCpuBound = esCpuBoundCheck.isSelected();
         ciclosExcepcionField.setEnabled(!esCpuBound);
@@ -425,10 +422,10 @@ public class MainGUI extends JFrame {
     panelForm.add(new JLabel()); // Espacio en blanco
     panelForm.add(new JLabel("Ciclos para generar E/S:"));
     panelForm.add(ciclosExcepcionField);
-    panelForm.add(new JLabel("Duración de E/S (ciclos):"));
+    panelForm.add(new JLabel("Duracion de E/S (ciclos):"));
     panelForm.add(duracionESField);
 
-    int resultado = JOptionPane.showConfirmDialog(this, panelForm, "Añadir Nuevo Proceso",
+    int resultado = JOptionPane.showConfirmDialog(this, panelForm, "Agregar Nuevo Proceso",
                                                   JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
     if (resultado == JOptionPane.OK_OPTION) {
@@ -455,11 +452,11 @@ public class MainGUI extends JFrame {
     
     private void guardarConfiguracion() {
     JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setDialogTitle("Guardar Configuración");
+    fileChooser.setDialogTitle("Guardar Configuracion");
     if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
         File archivo = fileChooser.getSelectedFile();
         try (Writer writer = new FileWriter(archivo)) {
-            // Preparamos el objeto de configuración
+            // Preparamos el objeto de configuracion
             ConfiguracionSimulacion config = new ConfiguracionSimulacion();
             config.duracionCicloMs = Reloj.getCycleDurationMs();
             
@@ -473,7 +470,7 @@ public class MainGUI extends JFrame {
             // Guardamos el objeto completo como JSON
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(config, writer);
-            consola.agregarLinea("💾 Configuración guardada en: " + archivo.getAbsolutePath(), Color.CYAN);
+            consola.agregarLinea("💾 Configuracion guardada en: " + archivo.getAbsolutePath(), Color.CYAN);
         } catch (IOException e) {
             consola.agregarLinea("❌ Error al guardar: " + e.getMessage(), Color.RED);
         }
@@ -482,34 +479,34 @@ public class MainGUI extends JFrame {
 
     private void cargarConfiguracion() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Cargar Configuración");
+        fileChooser.setDialogTitle("Cargar Configuracion");
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File archivo = fileChooser.getSelectedFile();
             try (Reader reader = new FileReader(archivo)) {
                 Gson gson = new Gson();
                 ConfiguracionSimulacion config = gson.fromJson(reader, ConfiguracionSimulacion.class);
 
-                // Cargamos la duración del ciclo
+                // Cargamos la duracion del ciclo
                 Reloj.setCycleDurationMs(config.duracionCicloMs);
-                // (Opcional) Actualizar la posición del slider para que refleje el valor cargado
+              // Actualizar la posicion del slider para que refleje el valor cargado
                 // sliderVelocidad.setValue(config.duracionCicloMs);
 
                 // Limpiamos la lista actual y la llenamos con los datos cargados
-                // Esto respeta la restricción de NO usar ArrayList en tu lógica principal
-                this.procesosParaSimular.clear(); // Necesitarás un método clear() en tu ListaSimple
+                // Esto respeta la restriccion de NO usar ArrayList en tu logica principal
+                this.procesosParaSimular.clear(); 
                 for (ProcesoData data : config.procesos) {
                     Proceso p = new Proceso(data.nombre, data.totalInstructions, data.isCpuBound, data.ciclosExcepcionES, data.duracionES, 0);
                     this.procesosParaSimular.insertFinal(p);
                 }
-                consola.agregarLinea("✅ " + config.procesos.size() + " procesos y configuración cargados.", Color.CYAN);
+                consola.agregarLinea(config.procesos.size() + " procesos y configuracion cargados.", Color.CYAN);
             } catch (Exception e) {
-                consola.agregarLinea("❌ Error al cargar el archivo: " + e.getMessage(), Color.RED);
+                consola.agregarLinea("Error al cargar el archivo: " + e.getMessage(), Color.RED);
             }
         }
         }
     
     private void actualizarDashboard() {
-    // Nos aseguramos de que la actualización ocurra en el hilo de la interfaz (EDT)
+    // Nos aseguramos de que la actualizacion ocurra en el hilo de la interfaz (EDT)
     SwingUtilities.invokeLater(() -> {
         if (motorSimulacionActual == null) return;
 
@@ -555,12 +552,11 @@ public class MainGUI extends JFrame {
 
         } else {
             labelProcesoCPU.setText("LIBRE");
-            areaInfoProceso.setText("La CPU está libre. No hay proceso en ejecución.");
+            areaInfoProceso.setText("La CPU esta libre. No hay proceso en ejecucion.");
         }
     });
     }
 
-    // 🎯 MÉTODO PRINCIPAL
     public static void main(String[] args) {
         
         // Crear y mostrar la interfaz

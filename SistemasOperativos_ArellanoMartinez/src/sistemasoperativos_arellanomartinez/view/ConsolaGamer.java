@@ -8,7 +8,6 @@ import javax.swing.text.*;
 import java.awt.*;
 
 /**
- * CONSOLA PERSONALIZADA CON ESTILO GAMER
  * Muestra texto con colores y formato estilo terminal gaming
  * @author Ada
  */
@@ -24,14 +23,13 @@ public class ConsolaGamer extends JTextPane {
         doc = getStyledDocument();
         estiloNormal = new SimpleAttributeSet();
         
-        // Configuración estilo gamer
         setEditable(false);
         setBackground(new Color(0, 0, 20)); // Fondo azul oscuro
         setForeground(Color.WHITE);
         setFont(new Font("Consolas", Font.PLAIN, 14));
         setCaretColor(Color.CYAN);
         
-        // Borde estilo gaming
+        // Borde
         setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(0, 100, 200), 3),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)

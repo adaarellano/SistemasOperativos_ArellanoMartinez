@@ -9,7 +9,7 @@ import sistemasoperativos_arellanomartinez.Simulador.Reloj;
 import java.util.concurrent.Semaphore;
 
 /**
- * First Come First Served - Planificación no apropiativa
+ * First Come First Served - Planificacion no apropiativa
  * Una vez que un proceso toma la CPU, la mantiene hasta terminar
  * @author Ada
  */
@@ -52,7 +52,7 @@ public class FCFS implements Planificador {
                     procesoEjecutando = null;
                     cambiosContexto++;
                 } 
-                // Si puede continuar, mantenerlo (FCFS no apropiativa)
+                // Si puede continuar, mantenerlo
                 else {
                     System.out.println("FCFS mantiene en CPU: " + procesoEjecutando.getName());
                     semaforoCola.release();
@@ -60,11 +60,11 @@ public class FCFS implements Planificador {
                 }
             }
             
-            // 🎯 2. SELECCIONAR NUEVO PROCESO
+            // 2. seleccionar un nuevo proceso
             if (!colaListos.estaVacia()) {
                 procesoEjecutando = (Proceso) colaListos.desencolar();
                 
-                // Registrar inicio de ejecución (si es primera vez)
+                
                 if (procesoEjecutando.getTiempoInicioEjecucion() == -1) {
                     procesoEjecutando.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
                 }
@@ -156,7 +156,6 @@ public class FCFS implements Planificador {
         return "FCFS (First Come First Served)";
     }
     
-    // 🔄 MÉTODOS REQUERIDOS POR LA INTERFAZ
     @Override
     public Proceso seleccionarProximoProceso() {
         return siguienteProceso();
@@ -169,7 +168,7 @@ public class FCFS implements Planificador {
     
     @Override
     public void reorganizarColas() {
-        // FCFS no necesita reorganizar colas
+        // FCFS no reorganiza colas
     }
     
     @Override
@@ -202,12 +201,12 @@ public class FCFS implements Planificador {
             semaforoCola.acquire();
             
             StringBuilder sb = new StringBuilder();
-            sb.append("🖥️  CPU: ").append(procesoEjecutando != null ? 
+            sb.append("CPU: ").append(procesoEjecutando != null ? 
                 procesoEjecutando.getName() + " [EJECUTANDO]" : "LIBRE").append("\n");
             
-            sb.append("📋 Cola Listos (").append(colaListos.getTamano()).append("): ");
+            sb.append("Cola Listos (").append(colaListos.getTamano()).append("): ");
             if (colaListos.estaVacia()) {
-                sb.append("Vacía");
+                sb.append("Vacia");
             } else {
                 Cola temp = new Cola();
                 while (!colaListos.estaVacia()) {
@@ -220,8 +219,8 @@ public class FCFS implements Planificador {
                 }
             }
             
-            sb.append("\n🔀 Cambios contexto: ").append(cambiosContexto);
-            sb.append("\n⏰ Ciclos totales: ").append(ciclosTotales);
+            sb.append("\nCambios contexto: ").append(cambiosContexto);
+            sb.append("\nCiclos totales: ").append(ciclosTotales);
             
             semaforoCola.release();
             return sb.toString();
@@ -232,7 +231,6 @@ public class FCFS implements Planificador {
         }
     }
     
-    // 🔹 MÉTODOS PARA MONITOREO
     public Proceso getProcesoEjecutando() {
         return procesoEjecutando;
     }

@@ -37,7 +37,7 @@ public class ConsolaGamer extends JTextPane {
     }
     
     /**
-     * Agrega una línea de texto con color específico
+     * Agrega una linea de texto con color especifico
      */
     public void agregarLinea(String texto, Color color) {
         try {
@@ -58,7 +58,7 @@ public class ConsolaGamer extends JTextPane {
     }
     
     /**
-     * Agrega una línea de texto con color por defecto (blanco)
+     * Agrega una linea de texto con color por defecto (blanco)
      */
     public void agregarLinea(String texto) {
         agregarLinea(texto, Color.WHITE);
@@ -76,7 +76,7 @@ public class ConsolaGamer extends JTextPane {
     }
     
     /**
-     * Agrega una línea de separación
+     * Agrega una linea de separacion
      */
     public void agregarSeparador() {
         agregarLinea("=" .repeat(60), Color.YELLOW);

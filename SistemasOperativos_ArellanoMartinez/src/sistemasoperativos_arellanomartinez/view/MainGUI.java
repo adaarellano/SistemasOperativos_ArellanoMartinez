@@ -197,7 +197,7 @@ public class MainGUI extends JFrame {
         // Boton para iniciar la simulacion
         btnIniciar = crearBotonGamer("▶ Iniciar Simulacion");
 
-        // Menú desplegable para seleccionar el algoritmo
+        // Menu desplegable para seleccionar el algoritmo
         selectorAlgoritmo = new JComboBox<>();
         selectorAlgoritmo.addItem("FCFS");
         selectorAlgoritmo.addItem("Round Robin");
@@ -261,7 +261,7 @@ public class MainGUI extends JFrame {
         }
         });
         
-        // --- Evento del menú desplegable ---
+        // --- Evento del menu desplegable ---
         selectorAlgoritmo.addActionListener(e -> {
             // Solo cambia el algoritmo si la simulacion ya esta en curso
             if (motorSimulacionActual != null && motorSimulacionActual.isSimulacionActiva()) {
@@ -354,7 +354,7 @@ public class MainGUI extends JFrame {
                     break;
                 }
                 }
-                // Pequeña pausa final para asegurar la última actualizacion
+                // Pequeña pausa final para asegurar la ultima actualizacion
                 Thread.sleep(200);
                 actualizarDashboard();
             
@@ -432,7 +432,7 @@ public class MainGUI extends JFrame {
         try {
             String nombre = nombreField.getText();
             if (nombre.trim().isEmpty()) {
-                throw new IllegalArgumentException("El nombre no puede estar vacío.");
+                throw new IllegalArgumentException("El nombre no puede estar vacio.");
             }
             int instrucciones = Integer.parseInt(instruccionesField.getText());
             boolean esCpuBound = esCpuBoundCheck.isSelected();

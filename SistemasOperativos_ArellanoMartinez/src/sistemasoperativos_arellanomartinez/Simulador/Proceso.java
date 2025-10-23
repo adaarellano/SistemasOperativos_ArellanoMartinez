@@ -22,6 +22,7 @@ public class Proceso {
     // ejecucion
     private int totalInstructions;
     private int pc; // Program Counter
+    private int mar;
     private Estado state;
     private Thread hiloEjecucion;
     private Thread hiloES;
@@ -61,6 +62,7 @@ public class Proceso {
         this.name = name;
         this.totalInstructions = totalInstructions;
         this.pc = 0;
+        this.mar = 0;
         this.state = Estado.NUEVO;
         this.isCpuBound = isCpuBound;
         this.ciclosExcepcionES = ciclosParaExcepcionES;
@@ -150,6 +152,7 @@ public class Proceso {
         if (pc < totalInstructions && !estaEnES() && !suspendido && !pausado) {
             // Ejecutar instruccion
             pc++;
+            this.mar = this.pc;
             tiempoEjecucionTotal++;
             
             System.out.println(name + " ejecutó instrucción " + pc + "/" + totalInstructions);
@@ -335,6 +338,10 @@ public class Proceso {
     
     public int getTiempoEjecucionTotal() {
         return tiempoEjecucionTotal;
+    }
+    
+    public int getMar() {
+        return mar;
     }
     
     @Override

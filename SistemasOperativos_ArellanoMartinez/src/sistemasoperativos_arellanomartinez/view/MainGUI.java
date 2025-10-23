@@ -32,6 +32,7 @@ public class MainGUI extends JFrame {
     private Engine motorSimulacionActual;
     private ListaSimple procesosParaSimular;
     
+    
     // Colores estilo gamer
     private final Color COLOR_FONDO = new Color(15, 15, 35);
     private final Color COLOR_BOTON = new Color(0, 150, 255);
@@ -43,9 +44,14 @@ public class MainGUI extends JFrame {
     
     private DefaultListModel<String> modeloListaBloqueados;
     private JList<String> listaBloqueados;
+    
+    private DefaultListModel<String> modeloListaListosSus, modeloListaBloqueadosSus;
+    private JList<String> listaListosSus, listaBloqueadosSus;
 
     private JTextArea areaInfoProceso;
     private JLabel labelProcesoCPU;
+    private JLabel labelModoOperacion;
+    private JLabel labelCiclos;
     
     public MainGUI() {
         this.procesosParaSimular = new ListaSimple(); // INICIALIZA LA LISTA
@@ -65,6 +71,8 @@ public class MainGUI extends JFrame {
         setLayout(new BorderLayout());
     }
     
+    
+    
     private void crearComponentes() {
         // panel superior titulo
         JPanel panelTitulo = crearPanelTitulo();
@@ -74,35 +82,46 @@ public class MainGUI extends JFrame {
         panelDashboard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panelDashboard.setBackground(COLOR_FONDO);
 
-        // Columna 1: Cola de Listos
-        panelDashboard.add(crearPanelCola("Procesos Listos"));
-        
-        // Columna 2: CPU y Cola de Bloqueados
+        // --- Columna 1: Listos y Listos-Suspendidos ---
+        JPanel panelIzquierda = new JPanel(new GridLayout(2, 1, 10, 10));
+        panelIzquierda.setOpaque(false);
+        panelIzquierda.add(crearPanelCola("Procesos Listos"));
+        panelIzquierda.add(crearPanelCola("Listos-Suspendidos"));
+        panelDashboard.add(panelIzquierda);
+
+        // --- Columna 2: CPU, Bloqueados y Bloqueados-Suspendidos ---
         JPanel panelCentro = new JPanel(new BorderLayout(10, 10));
-        panelCentro.setBackground(COLOR_FONDO);
+        panelCentro.setOpaque(false);
         panelCentro.add(crearPanelCPU(), BorderLayout.NORTH);
-        panelCentro.add(crearPanelCola("Procesos Bloqueados"));
+        JPanel panelColasBloqueados = new JPanel(new GridLayout(2, 1, 10, 10));
+        panelColasBloqueados.setOpaque(false);
+        panelColasBloqueados.add(crearPanelCola("Procesos Bloqueados"));
+        panelColasBloqueados.add(crearPanelCola("Bloqueados-Suspendidos"));
+        panelCentro.add(panelColasBloqueados, BorderLayout.CENTER);
         panelDashboard.add(panelCentro);
 
-        // Columna 3: Informacion del PCB y Consola de Logs
-        JPanel panelDerecha = new JPanel(new BorderLayout(10, 10));
-        panelDerecha.setOpaque(false);
-        panelDerecha.add(crearPanelInfoPCB(), BorderLayout.NORTH);
+        // -- Columna Derecha del Dashboard --
+        panelDashboard.add(crearPanelInfoPCB());
+    
 
         // panel central
         consola = new ConsolaGamer();
         JScrollPane scrollConsola = new JScrollPane(consola);
         scrollConsola.setBorder(BorderFactory.createLineBorder(COLOR_BOTON, 2));
-        panelDerecha.add(scrollConsola, BorderLayout.CENTER);
-        panelDashboard.add(panelDerecha);
+        
         
         // panel inferior donde estan los botones
         JPanel panelBotones = crearPanelBotones();
         
+        // 5. Divisor (JSplitPane) para la parte inferior
+        JSplitPane splitPaneInferior = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollConsola, panelBotones);
+        splitPaneInferior.setResizeWeight(0.8); // La consola ocupa el 70% del espacio
+        splitPaneInferior.setBorder(null);
+        
         // Agregar componentes a la ventana
         add(panelTitulo, BorderLayout.NORTH);
-        add(scrollConsola, BorderLayout.CENTER);
-        add(panelBotones, BorderLayout.SOUTH);
+        add(panelDashboard, BorderLayout.CENTER);
+        add(splitPaneInferior, BorderLayout.SOUTH);
     }
     
     private JPanel crearPanelCola(String titulo) {
@@ -114,14 +133,19 @@ public class MainGUI extends JFrame {
         lista.setForeground(Color.WHITE);
         lista.setFont(new Font("Consolas", Font.PLAIN, 14));
 
-        // Asigna las variables de instancia de la clase
-        if (titulo.contains("Listos")) {
+        if (titulo.contains("Listos-Suspendidos")) {
+            this.modeloListaListosSus = modelo;
+            this.listaListosSus = lista;
+        } else if (titulo.contains("Listos")) {
             this.modeloListaListos = modelo;
             this.listaListos = lista;
-        } else {
+        } else if (titulo.contains("Bloqueados-Suspendidos")) {
+            this.modeloListaBloqueadosSus = modelo;
+            this.listaBloqueadosSus = lista;
+        } else if (titulo.contains("Bloqueados")) {
             this.modeloListaBloqueados = modelo;
             this.listaBloqueados = lista;
-        }
+        }            
 
         JPanel panel = new JPanel(new BorderLayout());
         JLabel labelTitulo = new JLabel(titulo, SwingConstants.CENTER);
@@ -140,11 +164,21 @@ public class MainGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.GREEN), "CPU en Ejecucion", 0, 0, new Font("Consolas", Font.BOLD, 16), Color.GREEN));
-
+        
+        labelCiclos = new JLabel("Ciclo: 0", SwingConstants.CENTER);
+        labelCiclos.setFont(new Font("Consolas", Font.BOLD, 16));
+        labelCiclos.setForeground(Color.YELLOW);
+        panel.add(labelCiclos, BorderLayout.NORTH); // Lo ponemos arriba
+        
         labelProcesoCPU = new JLabel("LIBRE", SwingConstants.CENTER);
         labelProcesoCPU.setFont(new Font("Consolas", Font.BOLD, 20));
         labelProcesoCPU.setForeground(Color.WHITE);
-
+        
+        labelModoOperacion = new JLabel("Modo: Kernel (SO)", SwingConstants.CENTER);
+        labelModoOperacion.setFont(new Font("Consolas", Font.PLAIN, 12));
+        labelModoOperacion.setForeground(Color.ORANGE);
+        
+        panel.add(labelModoOperacion, BorderLayout.SOUTH); // Lo ponemos abajo
         panel.add(labelProcesoCPU, BorderLayout.CENTER);
         panel.setPreferredSize(new Dimension(100, 120));
 
@@ -182,29 +216,25 @@ public class MainGUI extends JFrame {
     }
     
     private JPanel crearPanelBotones() {
-        JPanel panel = new JPanel(new GridLayout(2, 0, 10, 10));
+        JPanel panel = new JPanel(new GridLayout(3, 0, 5, 5));
         panel.setBackground(COLOR_FONDO);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
         
         // Botones de control de procesos
         btnAgregarProceso = crearBotonGamer("Añadir Proceso");
         guardar = crearBotonGamer("Guardar");
         cargar = crearBotonGamer("Cargar archivo");
         btnSalir = crearBotonGamer("🚪 SALIR");
+        
 
         // Boton para iniciar la simulacion
         btnIniciar = crearBotonGamer("▶ Iniciar Simulacion");
 
         // Menu desplegable para seleccionar el algoritmo
-        selectorAlgoritmo = new JComboBox<>();
-        selectorAlgoritmo.addItem("FCFS");
-        selectorAlgoritmo.addItem("Round Robin");
-        selectorAlgoritmo.addItem("SPN");
-        selectorAlgoritmo.addItem("SRT");
-        selectorAlgoritmo.addItem("HRRN");
-        selectorAlgoritmo.addItem("Feedback");
-        selectorAlgoritmo.setFont(new Font("Consolas", Font.BOLD, 14));
-        
+        selectorAlgoritmo = new JComboBox<>(new String[]{"FCFS", "Round Robin", "SPN", "SRT", "HRRN", "Feedback"});
+        selectorAlgoritmo.setFont(new Font("Consolas", Font.BOLD, 12));
+       
         panel.add(btnSalir);
         panel.add(btnAgregarProceso);
         panel.add(guardar);
@@ -229,12 +259,12 @@ public class MainGUI extends JFrame {
     
     private JButton crearBotonGamer(String texto) {
         JButton boton = new JButton(texto);
-        boton.setFont(new Font("Consolas", Font.BOLD, 14));
+        boton.setFont(new Font("Consolas", Font.BOLD, 12));
         boton.setBackground(COLOR_BOTON);
         boton.setForeground(Color.WHITE);
         boton.setFocusPainted(false);
         boton.setBorder(BorderFactory.createRaisedBevelBorder());
-        boton.setPreferredSize(new Dimension(150, 40));
+        boton.setPreferredSize(new Dimension(140, 35));
         
         // Efecto hover
         boton.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -256,6 +286,13 @@ public class MainGUI extends JFrame {
         // Si no hay una simulacion activa, la iniciamos
         if (motorSimulacionActual == null || !motorSimulacionActual.isSimulacionActiva()) {
             ejecutarSimulacion();
+            btnIniciar.setText("⏹ Detener Simulación");
+            btnIniciar.setBackground(Color.RED);
+        } else {
+            // Si la simulación ya está activa, la detenemos
+            motorSimulacionActual.detenerSimulacion();
+            btnIniciar.setText("▶ Iniciar Simulación");
+            btnIniciar.setBackground(COLOR_BOTON);
         }
         });
         
@@ -303,9 +340,6 @@ public class MainGUI extends JFrame {
     }
     
     
-    
-    
-    
     private void mostrarBienvenida() {
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
         consola.agregarLinea("🎮 BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN);
@@ -316,7 +350,7 @@ public class MainGUI extends JFrame {
     
     private void ejecutarSimulacion() {
         if (motorSimulacionActual != null && motorSimulacionActual.isSimulacionActiva()) {
-        motorSimulacionActual.detenerSimulacion();
+            motorSimulacionActual.detenerSimulacion();
         }
         if (this.procesosParaSimular.sizeLista() == 0) {
         consola.agregarLinea("No hay procesos. Añade o carga procesos antes de simular.", Color.ORANGE);
@@ -325,22 +359,23 @@ public class MainGUI extends JFrame {
         
         // Obtenemos el planificador inicial desde el selector que el usuario eligio.
         Planificador planificadorInicial = crearPlanificadorDesdeSelector();
+        ListaSimple jobPool = new ListaSimple();
+        for (int i = 0; i < this.procesosParaSimular.sizeLista(); i++) {
+            Proceso p = (Proceso) this.procesosParaSimular.get(i);
+            // Creamos una nueva instancia para no afectar la lista original
+            jobPool.insertFinal(new Proceso(p.getName(), p.getTotalInstructions(), p.isCpuBound(), p.getProximaExcepcionES(), p.getDuracionES(), 0));
+        }
+        
         new Thread(() -> {
             try {
                 // 1. Crear el motor pasandole el planificador y la consola
-                motorSimulacionActual = new Engine(planificadorInicial, this.consola);
+                motorSimulacionActual = new Engine(planificadorInicial, this.consola, jobPool);
                 SwingUtilities.invokeLater(() -> {
                     consola.limpiar();
-                    consola.agregarLinea("INICIANDO SIMULACION: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
-                    consola.agregarLinea("Cargando " + this.procesosParaSimular.sizeLista() + " procesos definidos por el usuario...", Color.WHITE);
+                    consola.agregarLinea("🚀 INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
+                    consola.agregarLinea("🗳️ " + jobPool.sizeLista() + " procesos enviados al pool de trabajos.", Color.WHITE);
                     consola.agregarSeparador();
                 });
-
-                for (int i = 0; i < this.procesosParaSimular.sizeLista(); i++) {
-                Proceso pOriginal = (Proceso) this.procesosParaSimular.get(i);
-                Proceso pCopia = new Proceso(pOriginal.getName(), pOriginal.getTotalInstructions(), pOriginal.isCpuBound(), pOriginal.getProximaExcepcionES(), pOriginal.getDuracionES(), i);
-                motorSimulacionActual.agregarProceso(pCopia);
-            }
             
                 motorSimulacionActual.iniciarSimulacion();
                 while (motorSimulacionActual.isSimulacionActiva()) {
@@ -386,6 +421,9 @@ public class MainGUI extends JFrame {
                         consola.agregarLinea("SIMULACION COMPLETADA", Color.GREEN);
                         consola.agregarLinea(resultados, Color.YELLOW);
                         consola.agregarLinea("Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
+                        btnIniciar.setText("▶ Iniciar Simulación");
+                        btnIniciar.setBackground(COLOR_BOTON);
+                    
                     });
                 }
             }
@@ -486,7 +524,7 @@ public class MainGUI extends JFrame {
 
                 // Cargamos la duracion del ciclo
                 Reloj.setCycleDurationMs(config.duracionCicloMs);
-
+                sliderVelocidad.setValue(config.duracionCicloMs);
                 // Limpiamos la lista actual y la llenamos con los datos cargados
                 this.procesosParaSimular.clear(); 
                 for (ProcesoData data : config.procesos) {
@@ -520,18 +558,36 @@ public class MainGUI extends JFrame {
             Proceso p = (Proceso) procesosBloqueados.get(i);
             modeloListaBloqueados.addElement(p.getId() + " - " + p.getName());
         }
+        
+        // --- Actualizar Cola de Listos-Suspendidos ---
+        modeloListaListosSus.clear();
+        ListaSimple procesosListosSus = motorSimulacionActual.getProcesosListosSuspendidos();
+        for (int i = 0; i < procesosListosSus.sizeLista(); i++) {
+            Proceso p = (Proceso) procesosListosSus.get(i);
+            modeloListaListosSus.addElement(p.getId() + " - " + p.getName());
+        }
 
+        // --- Actualizar Cola de Bloqueados-Suspendidos ---
+        modeloListaBloqueadosSus.clear();
+        ListaSimple procesosBloqueadosSus = motorSimulacionActual.getProcesosBloqueadosSuspendidos();
+        for (int i = 0; i < procesosBloqueadosSus.sizeLista(); i++) {
+            Proceso p = (Proceso) procesosBloqueadosSus.get(i);
+            modeloListaBloqueadosSus.addElement(p.getId() + " - " + p.getName());
+        }
+        
         // --- Actualizar Panel de CPU ---
         Proceso enCpu = motorSimulacionActual.getProcesoEjecutandoActual();
         if (enCpu != null) {
             labelProcesoCPU.setText(enCpu.getId() + " - " + enCpu.getName());
-            
+            labelModoOperacion.setText("Modo: Usuario");
+            labelModoOperacion.setForeground(Color.CYAN);
             // --- Actualizar Panel de Info (PCB) ---
             String info = String.format(
                 "ID: %s\n" +
                 "Nombre: %s\n" +
                 "Estado: %s\n" +
                 "PC: %d / %d\n" +
+                "MAR: %d\n" + // <-- LÍNEA AÑADIDA
                 "--------------------\n" +
                 "Tiempo Llegada: %d\n" +
                 "Tiempo Inicio Ejec.: %d\n",
@@ -540,6 +596,7 @@ public class MainGUI extends JFrame {
                 enCpu.getState().toString(),
                 enCpu.getPc(),
                 enCpu.getTotalInstructions(),
+                enCpu.getMar(), // <-- LÍNEA AÑADIDA
                 enCpu.getTiempoLlegada(),
                 enCpu.getTiempoInicioEjecucion()
             );
@@ -547,6 +604,8 @@ public class MainGUI extends JFrame {
 
         } else {
             labelProcesoCPU.setText("LIBRE");
+            labelModoOperacion.setText("Modo: Kernel (SO)");
+            labelModoOperacion.setForeground(Color.ORANGE);
             areaInfoProceso.setText("La CPU esta libre. No hay proceso en ejecucion.");
         }
     });

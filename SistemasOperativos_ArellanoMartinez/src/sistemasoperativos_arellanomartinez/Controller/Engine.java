@@ -18,7 +18,7 @@ import java.util.concurrent.Semaphore;
  * Motor principal de simulacion 
  */
 public class Engine {
-    
+    private static final int MAX_PROCESOS_EN_MEMORIA = 4;
     private Planificador planificador;
     private ListaSimple todosProcesos;
     private volatile boolean simulacionActiva;
@@ -26,7 +26,7 @@ public class Engine {
     private Proceso procesoEjecutandoActual;
     private ConsolaGamer consola;
     private volatile Planificador proximoPlanificador = null; 
-    
+    private ListaSimple jobPool;
     // semaforos
     private final Semaphore semaforoGlobal;    // Exclusion mutua global
     private final Semaphore semaforoES;        // Control de E/S simultaneas
@@ -41,12 +41,13 @@ public class Engine {
     private int ciclosCpuOcupado;
     private ListaSimple procesosTerminados; // Para guardar procesos finalizados y calcular promedios
     
-    public Engine(Planificador planificador, ConsolaGamer consola) {
+    public Engine(Planificador planificador, ConsolaGamer consola, ListaSimple jobPool) {
         this.planificador = planificador;
         this.consola = consola;
         this.todosProcesos = new ListaSimple();
         this.simulacionActiva = false;
         this.procesoEjecutandoActual = null;
+        this.jobPool = jobPool;
         
         // INICIALIZAR SEMAFOROS MEJORADOS
         this.semaforoGlobal = new Semaphore(1);        // Exclusion mutua
@@ -90,6 +91,17 @@ public class Engine {
             try {
                 semaforoGlobal.acquire();
                 
+                // 1. Planificador a Mediano Plazo
+                gestionarSuspensionesAutomaticas();
+                
+                // 2. Planificador a Largo Plazo
+                if (ciclosTotales > 0 && ciclosTotales % 15 == 0 && jobPool.sizeLista() > 0) {
+                    Proceso nuevoProceso = (Proceso) jobPool.get(0);
+                    jobPool.deleteBegin(); 
+                    agregarProceso(nuevoProceso);
+                    log("💼 LARGO PLAZO: Proceso '" + nuevoProceso.getName() + "' admitido al sistema.", Color.CYAN);
+                }
+                
                 // Revisamos si la interfaz dejó una "nota" para cambiar el planificador
                 if (proximoPlanificador != null) {
                     realizarCambioDePlanificador(proximoPlanificador); 
@@ -115,9 +127,6 @@ public class Engine {
                 if (procesoAntesDePlanificar != null && procesoAntesDePlanificar.isFinished() && !procesoYaContabilizado(procesoAntesDePlanificar)) {
                     this.procesosCompletados++;
                     this.procesosTerminados.insertFinal(procesoAntesDePlanificar);
-
-                    log("Proceso '" + procesoAntesDePlanificar.getName() + "' completado.", Color.MAGENTA);
-
                     log("Proceso '" + procesoAntesDePlanificar.getName() + "' ha completado su ejecución.", Color.MAGENTA);
 
                 }
@@ -140,7 +149,7 @@ public class Engine {
             }
         }
         simulacionActiva = false; // Asegura que el bucle de la GUI termine
-        log("Todos los procesos han terminado o la simulación fue detenida.", new Color(150, 150, 150));
+        log("Simulación finalizada: No hay más procesos activos ni trabajos en cola.", new Color(150, 150, 150));
     }
     
     private boolean procesoYaContabilizado(Proceso p) {
@@ -576,6 +585,36 @@ public class Engine {
         return copia;
     }
     
+    public ListaSimple getProcesosListosSuspendidos() {
+        ListaSimple listosSuspendidos = new ListaSimple();
+        try {
+            semaforoGlobal.acquire();
+            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+                Proceso p = (Proceso) todosProcesos.get(i);
+                if (p.getState() == Proceso.Estado.SUS_LISTO) {
+                    listosSuspendidos.insertFinal(p);
+                }
+            }
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        finally { if (semaforoGlobal.availablePermits() == 0) semaforoGlobal.release(); }
+        return listosSuspendidos;
+    }
+
+    public ListaSimple getProcesosBloqueadosSuspendidos() {
+        ListaSimple bloqueadosSuspendidos = new ListaSimple();
+        try {
+            semaforoGlobal.acquire();
+            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+                Proceso p = (Proceso) todosProcesos.get(i);
+                if (p.getState() == Proceso.Estado.SUS_BLOQUEADO) {
+                    bloqueadosSuspendidos.insertFinal(p);
+                }
+            }
+        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        finally { if (semaforoGlobal.availablePermits() == 0) semaforoGlobal.release(); }
+        return bloqueadosSuspendidos;
+    }
+    
     
     public boolean isSimulacionActiva() {
         return simulacionActiva;
@@ -727,53 +766,7 @@ public class Engine {
         }
         return bloqueados;
     }
-    /**
-     * Cambia el planificador actual por uno nuevo en tiempo real.
-     * Transfiere todos los procesos activos al nuevo planificador.
-     
-    public void setPlanificador(Planificador nuevoPlanificador) {
-        try {
-            // Bloqueamos todo para hacer el cambio de forma segura
-            semaforoGlobal.acquire();
-
-            log("Cambiando planificador a: " + nuevoPlanificador.getNombreAlgoritmo(), Color.ORANGE);
-
-            // 1. Crear una lista temporal con todos los procesos que no han terminado.
-            ListaSimple procesosActivos = new ListaSimple();
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (!p.isFinished()) {
-                    // Devolvemos los procesos a un estado neutral "LISTO"
-                    p.setState(Proceso.Estado.LISTO);
-                    procesosActivos.insertFinal(p);
-                }
-            }
-
-            // 2. Detenemos el proceso que se estaba ejecutando (si lo había)
-            if (procesoEjecutandoActual != null) {
-                procesoEjecutandoActual.pausarEjecucion();
-                procesoEjecutandoActual = null;
-            }
-
-            // 3. Reemplazamos el planificador
-            this.planificador = nuevoPlanificador;
-
-            // 4. Agregamos todos los procesos activos al nuevo planificador
-            for (int i = 0; i < procesosActivos.sizeLista(); i++) {
-                this.planificador.agregarProceso((Proceso) procesosActivos.get(i));
-            }
-
-            cambiosContexto++; // El cambio de planificador cuenta como un cambio de contexto
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            if (semaforoGlobal.availablePermits() == 0) {
-                semaforoGlobal.release();
-            }
-        }
-    }*/
-    
+   
     // que los hilos no choquen al momento de cambiar de planiicador 
     private void realizarCambioDePlanificador(Planificador nuevoPlanificador) {
     
@@ -813,4 +806,79 @@ public class Engine {
     public Planificador getPlanificador() {
     return this.planificador;
     }
+    
+    public void suspenderProcesoMasLargo() {
+        Proceso candidato = null;
+        int maxInstrucciones = -1;
+
+        // Busca en listos y bloqueados el proceso más largo que no esté ya suspendido
+        ListaSimple[] listas = {getProcesosListos(), getProcesosBloqueados()};
+        for (ListaSimple lista : listas) {
+            for (int i = 0; i < lista.sizeLista(); i++) {
+                Proceso p = (Proceso) lista.get(i);
+                if (p.getTotalInstructions() > maxInstrucciones) {
+                    maxInstrucciones = p.getTotalInstructions();
+                    candidato = p;
+                }
+            }
+        }
+
+        if (candidato != null) {
+            suspenderProceso(candidato); // Usamos el método que ya tenías
+            log("🔵 Proceso '" + candidato.getName() + "' suspendido por el sistema.", Color.BLUE);
+        }
+}
+
+    public void reanudarPrimerProcesoSuspendido() {
+        Proceso candidato = null;
+
+        // Busca el primer proceso que encuentre en las colas de suspendidos
+        ListaSimple listosSus = getProcesosListosSuspendidos();
+        if (listosSus.sizeLista() > 0) {
+            candidato = (Proceso) listosSus.get(0);
+        } else {
+            ListaSimple bloqueadosSus = getProcesosBloqueadosSuspendidos();
+            if (bloqueadosSus.sizeLista() > 0) {
+                candidato = (Proceso) bloqueadosSus.get(0);
+            }
+        }
+
+        if (candidato != null) {
+            reanudarProceso(candidato); // Usamos el método que ya tenías
+            log("🟢 Proceso '" + candidato.getName() + "' reanudado por el sistema.", Color.GREEN);
+        }
+    }
+    
+    private void gestionarSuspensionesAutomaticas() {
+        ListaSimple listos = getProcesosListos();
+        ListaSimple bloqueados = getProcesosBloqueados();
+        int procesosEnMemoria = listos.sizeLista() + bloqueados.sizeLista();
+
+        // Regla de Suspensión: Si estamos por encima del límite, suspender a alguien.
+        if (procesosEnMemoria > MAX_PROCESOS_EN_MEMORIA) {
+            Proceso candidato = null;
+            int maxInstrucciones = -1;
+            for (int i = 0; i < listos.sizeLista(); i++) {
+                Proceso p = (Proceso) listos.get(i);
+                if (p.getInstruccionesRestantes() > maxInstrucciones) {
+                    maxInstrucciones = p.getInstruccionesRestantes();
+                    candidato = p;
+                }
+            }
+            if (candidato != null) {
+                suspenderProceso(candidato);
+                log("💾 MEDIANO PLAZO: Sistema lleno. Proceso '" + candidato.getName() + "' suspendido.", Color.MAGENTA);
+            }
+        }
+        // Regla de Reanudación: Si hay espacio, reanudar a alguien.
+        else if (procesosEnMemoria < MAX_PROCESOS_EN_MEMORIA) {
+            ListaSimple listosSuspendidos = getProcesosListosSuspendidos();
+            if (listosSuspendidos.sizeLista() > 0) {
+                Proceso candidato = (Proceso) listosSuspendidos.get(0);
+                reanudarProceso(candidato);
+                log("💿 MEDIANO PLAZO: Hay espacio. Proceso '" + candidato.getName() + "' reanudado.", Color.MAGENTA);
+            }
+        }
+    }
+    
     }

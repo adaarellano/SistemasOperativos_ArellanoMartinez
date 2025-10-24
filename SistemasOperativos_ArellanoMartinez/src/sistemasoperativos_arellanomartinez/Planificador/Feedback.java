@@ -23,12 +23,8 @@ public class Feedback implements Planificador {
     private int colaActualEjecucion;
     private int quantumRestante;
     private final Semaphore semaforoColas;
-
-    private int cambiosContexto;
-    private int ciclosTotales;
-    private int desalojosQuantum;
-    private int procesosCompletados;
-    private int promocionesES;
+    
+    private int cambiosContexto = 0;
 
     public Feedback() {
         this.colas = new ListaSimple[NUM_COLAS];
@@ -45,30 +41,50 @@ public class Feedback implements Planificador {
     public Proceso seleccionarProximoProceso() {
         try {
             semaforoColas.acquire();
-            ciclosTotales++;
 
+            // 1. Evaluar el proceso actual
             if (procesoEjecutando != null) {
                 if (procesoEjecutando.isFinished()) {
-                    manejarProcesoTerminado();
+                    System.out.println(procesoEjecutando.getName() + " terminado.");
+                    procesoEjecutando = null; // Liberar CPU
                 } else if (procesoEjecutando.estaEnES()) {
-                    manejarProcesoES();
+                    System.out.println(procesoEjecutando.getName() + " bloqueado por E/S. Promociona a cola superior.");
+                    int colaPromocion = Math.max(0, colaActualEjecucion - 1);
+                    procesoEjecutando.setState(Proceso.Estado.LISTO);
+                    colas[colaPromocion].insertFinal(procesoEjecutando);
+                    procesoEjecutando = null; // Liberar CPU
                 } else if (quantumRestante <= 0) {
-                    manejarQuantumAgotado();
-                } else {
-                    quantumRestante--;
-                    semaforoColas.release();
-                    return procesoEjecutando;
+                    System.out.println("Quantum expirado para " + procesoEjecutando.getName() + ". Degrada a cola inferior.");
+                    int colaDegradacion = Math.min(NUM_COLAS - 1, colaActualEjecucion + 1);
+                    procesoEjecutando.setState(Proceso.Estado.LISTO);
+                    colas[colaDegradacion].insertFinal(procesoEjecutando);
+                    procesoEjecutando = null; // Liberar CPU
                 }
             }
 
-            Proceso siguiente = buscarProcesoValidoEnColas();
+            // 2. Si la CPU está libre, buscar un nuevo proceso
+            if (procesoEjecutando == null) {
+                for (int i = 0; i < NUM_COLAS; i++) {
+                    if (!colas[i].isEmpty()) {
+                        procesoEjecutando = (Proceso) colas[i].get(0);
+                        colas[i].deleteBegin(); // Sacarlo de la cola
 
-            if (siguiente != null) {
-                asignarProcesoCPU(siguiente);
+                        colaActualEjecucion = i;
+                        quantumRestante = QUANTUMS[i];
+                        
+                        procesoEjecutando.setState(Proceso.Estado.EJECUTANDO);
+                        cambiosContexto++;
+                        System.out.println("CPU asignado a " + procesoEjecutando.getName() + " (Cola " + i + ", Q=" + quantumRestante + ")");
+                        break; 
+                    }
+                }
+            }
+
+            // 3. Si un proceso está en CPU, simplemente decrementar su quantum
+            if (procesoEjecutando != null) {
+                quantumRestante--;
             } else {
-                procesoEjecutando = null;
-                colaActualEjecucion = -1;
-                quantumRestante = 0;
+                 System.out.println("Feedback: No hay procesos listos en ninguna cola.");
             }
 
             semaforoColas.release();
@@ -79,97 +95,10 @@ public class Feedback implements Planificador {
             return null;
         }
     }
-
-    private Proceso buscarProcesoValidoEnColas() {
-        for (int i = 0; i < NUM_COLAS; i++) {
-            for (int j = 0; j < colas[i].sizeLista(); j++) {
-                Proceso p = (Proceso) colas[i].get(j);
-
-                if (p == null || p.isFinished() || p == procesoEjecutando) {
-                    colas[i].remove(j--);
-                    continue;
-                }
-
-                if (!p.isFinished() && !estaEnColaCPU(p)) {
-                    colas[i].remove(j);
-                    colaActualEjecucion = i;
-                    quantumRestante = QUANTUMS[i];
-                    return p;
-                }
-            }
-        }
-        return null;
-    }
-
-    private boolean estaEnColaCPU(Proceso p) {
-        return procesoEjecutando != null && procesoEjecutando == p;
-    }
-
-    private void asignarProcesoCPU(Proceso p) {
-        procesoEjecutando = p;
-        if (p.getTiempoInicioEjecucion() == -1)
-            p.setTiempoInicioEjecucion(Reloj.getCurrentCycle());
-        p.setState(Proceso.Estado.EJECUTANDO);
-        cambiosContexto++;
-
-        System.out.println("CPU asignado a " + p.getName() +
-                           " (Cola " + colaActualEjecucion + ", Quantum=" + quantumRestante + ")");
-    }
-
-    private void manejarProcesoTerminado() {
-        procesosCompletados++;
-        procesoEjecutando.setTiempoFinalizacion(Reloj.getCurrentCycle());
-        limpiarProcesoDeTodasLasColas(procesoEjecutando);
-        System.out.println(procesoEjecutando.getName() + " terminado");
-        procesoEjecutando = null;
-        colaActualEjecucion = -1;
-        quantumRestante = 0;
-    }
-
-    private void manejarProcesoES() {
-        int nuevaCola = Math.max(0, colaActualEjecucion - 1);
-        promocionesES++;
-
-        if (!procesoEjecutando.isFinished() && !estaEnOtraCola(procesoEjecutando)) {
-            procesoEjecutando.setState(Proceso.Estado.LISTO);
-            colas[nuevaCola].insertFinal(procesoEjecutando);
-            System.out.println(procesoEjecutando.getName() +
-                               " a E/S -> reinsertado en cola " + nuevaCola);
-        }
-        procesoEjecutando = null;
-        colaActualEjecucion = -1;
-        quantumRestante = 0;
-    }
-
-    private void manejarQuantumAgotado() {
-        int nuevaCola = Math.min(NUM_COLAS - 1, colaActualEjecucion + 1);
-        desalojosQuantum++;
-
-        if (!procesoEjecutando.isFinished() && !estaEnOtraCola(procesoEjecutando)) {
-            procesoEjecutando.setState(Proceso.Estado.LISTO);
-            colas[nuevaCola].insertFinal(procesoEjecutando);
-            System.out.println(procesoEjecutando.getName() +
-                               " bajo a cola " + nuevaCola);
-        }
-        procesoEjecutando = null;
-        colaActualEjecucion = -1;
-        quantumRestante = 0;
-    }
-
-    private boolean estaEnOtraCola(Proceso p) {
+    
+    private void removerProcesoDeColas(Proceso p) {
         for (ListaSimple cola : colas) {
-            for (int i = 0; i < cola.sizeLista(); i++) {
-                if (cola.get(i) == p) return true;
-            }
-        }
-        return false;
-    }
-
-    private void limpiarProcesoDeTodasLasColas(Proceso p) {
-        for (ListaSimple cola : colas) {
-            for (int j = cola.sizeLista() - 1; j >= 0; j--) {
-                if (cola.get(j) == p) cola.remove(j);
-            }
+            cola.remove(p);
         }
     }
 
@@ -177,11 +106,10 @@ public class Feedback implements Planificador {
     public void agregarProceso(Proceso p) {
         try {
             semaforoColas.acquire();
-            if (!p.isFinished() && !estaEnOtraCola(p)) {
-                p.setState(Proceso.Estado.LISTO);
-                colas[0].insertFinal(p);
-                System.out.println(p.getName() + " agregado a Cola 0");
-            }
+            removerProcesoDeColas(p); // Evitar duplicados
+            p.setState(Proceso.Estado.LISTO);
+            colas[0].insertFinal(p);
+            System.out.println(p.getName() + " agregado a Cola 0 de Feedback.");
             semaforoColas.release();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -191,53 +119,35 @@ public class Feedback implements Planificador {
     @Override public void eliminarProceso(Proceso p) {
         try {
             semaforoColas.acquire();
-            limpiarProcesoDeTodasLasColas(p);
-            if (procesoEjecutando == p) procesoEjecutando = null;
+            if (procesoEjecutando == p) {
+                procesoEjecutando = null;
+            }
+            removerProcesoDeColas(p);
             semaforoColas.release();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
-
+    
     @Override public void procesoVolvioDeES(Proceso p) {
+        // La lógica de promoción ya lo maneja, pero si vuelve de una suspensión, se agrega a la cola 0
         agregarProceso(p);
     }
-
-    @Override public void procesoBloqueado(Proceso p) { }
-
-    @Override public String getNombreAlgoritmo() { return "Feedback Multinivel (Estable)"; }
-
-    @Override public void actualizarCiclo(int c) { }
-
-    @Override public void reorganizarColas() { }
-
-    @Override
-    public boolean tieneProcesos() {
-        if (procesoEjecutando != null && !procesoEjecutando.isFinished()) return true;
-        for (ListaSimple cola : colas) {
-            for (int i = 0; i < cola.sizeLista(); i++) {
-                Proceso p = (Proceso) cola.get(i);
-                if (p != null && !p.isFinished()) return true;
-            }
+    
+    @Override public void procesoBloqueado(Proceso p) {
+        // La lógica principal en seleccionarProximoProceso se encarga de esto
+    }
+    
+    @Override public boolean tieneProcesos() {
+        if (procesoEjecutando != null) return true;
+        for(ListaSimple cola : colas) {
+            if(!cola.isEmpty()) return true;
         }
         return false;
     }
-
-    @Override
-    public String getEstadoColas() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("CPU: ").append(procesoEjecutando != null ?
-            procesoEjecutando.getName() + " (cola " + colaActualEjecucion + ")" : "Libre").append("\n");
-        for (int i = 0; i < NUM_COLAS; i++) {
-            sb.append("Cola ").append(i).append(": ");
-            for (int j = 0; j < colas[i].sizeLista(); j++) {
-                Proceso p = (Proceso) colas[i].get(j);
-                sb.append(p.getName());
-                if (p.isFinished()) sb.append("terminado");
-                sb.append(" ");
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
+    
+    @Override public String getNombreAlgoritmo() { return "Feedback Multinivel (Estable)"; }
+    @Override public void actualizarCiclo(int c) { }
+    @Override public void reorganizarColas() { }
+    @Override public String getEstadoColas() { return "Estado de colas de Feedback no implementado en detalle."; }
 }

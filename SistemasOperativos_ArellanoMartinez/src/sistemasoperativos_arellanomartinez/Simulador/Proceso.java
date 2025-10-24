@@ -192,17 +192,15 @@ public class Proceso {
      */
     public void iniciarEjecucion() {
         if (hiloEjecucion.getState() == Thread.State.NEW) {
-            hiloEjecucion.start();
-        }
+        hiloEjecucion.start();
+    }
         if (hiloES.getState() == Thread.State.NEW) {
             hiloES.start();
         }
         
-        ejecutando = true;
-        state = Estado.EJECUTANDO;
-        pausado = false;
-        
-        System.out.println("Proceso INICIADO: " + name);
+        this.state = Estado.LISTO;
+        this.pausado = true;
+        System.out.println("Proceso LISTO");
     }
     
     /**

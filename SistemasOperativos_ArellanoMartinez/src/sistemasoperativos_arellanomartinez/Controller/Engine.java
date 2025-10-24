@@ -41,6 +41,12 @@ public class Engine {
     private int ciclosCpuOcupado;
     private ListaSimple procesosTerminados; // Para guardar procesos finalizados y calcular promedios
     
+    // **NUEVO: Métricas para el cálculo de "Precio"**
+    private double precioTotal;
+    private static final int PESO_CAMBIO_CONTEXTO = 10;
+    private static final int PESO_TIEMPO_ESPERA = 2;
+    private static final int PESO_CICLO_CPU = 1;
+    
     public Engine(Planificador planificador, ConsolaGamer consola, ListaSimple jobPool) {
         this.planificador = planificador;
         this.consola = consola;
@@ -54,15 +60,15 @@ public class Engine {
         this.semaforoES = new Semaphore(3);            // Maximo 3 E/S simultaneas
         this.semaforoPlanificador = new Semaphore(1);  // Proteccion planificador
         
+        // inicializar metricas
         this.ciclosTotales = 0;
         this.cambiosContexto = 0;
         this.operacionesESCompletadas = 0;
         this.procesosSuspendidos = 0;
-        
-        // inicializar metricas
         this.procesosCompletados = 0;
         this.ciclosCpuOcupado = 0;
         this.procesosTerminados = new ListaSimple();
+        this.precioTotal = 0.0; // **NUEVO: Inicializar precio**
        
     }
     
@@ -87,8 +93,7 @@ public class Engine {
      */
     private void ejecutarCicloSimulacion() {
         log("Hilo de simulación iniciado.", new Color(150, 150, 150));
-        while (simulacionActiva && contarProcesosActivos() > 0) {
-            try {
+        while (simulacionActiva && (contarProcesosActivos() > 0 || (jobPool != null && jobPool.sizeLista() > 0))) {   try {
                 semaforoGlobal.acquire();
                 
                 // 1. Planificador a Mediano Plazo
@@ -113,10 +118,13 @@ public class Engine {
                 ciclosTotales++;
                 log("Ciclo: " + Reloj.getCurrentCycle(), new Color(150, 150, 150));
                 
-                // 2. Contabilizar uso de CPU
+                // 2. Contabilizar uso de CPU y calcular costos de "Precio"
                 if (procesoEjecutandoActual != null) {
                     ciclosCpuOcupado++;
+                    this.precioTotal += PESO_CICLO_CPU; // **NUEVO: Costo por ciclo de CPU**
                 }
+                // **NUEVO: Costo por tiempo de espera**
+                this.precioTotal += getProcesosListos().sizeLista() * PESO_TIEMPO_ESPERA;
                 
                 Proceso procesoAntesDePlanificar = procesoEjecutandoActual;
 
@@ -177,6 +185,7 @@ public class Engine {
             // 3. verificar si hubo cambio de proceso
             if (procesoSeleccionado != procesoEjecutandoActual) {
                 cambiosContexto++;
+                this.precioTotal += PESO_CAMBIO_CONTEXTO; // **NUEVO: Costo por cambio de contexto**
                 
                 // Actualizar proceso actual
                 procesoEjecutandoActual = procesoSeleccionado;
@@ -198,7 +207,7 @@ public class Engine {
                 }
             } else if (procesoEjecutandoActual != null) {
                
-                procesoEjecutandoActual.reanudarEjecucion(); 
+   
             }
             
             asegurarUnSoloProcesoConPermiso();
@@ -311,17 +320,12 @@ public class Engine {
      * Agrega un proceso a la simulacion
      */
     public void agregarProceso(Proceso proceso) {
-        try {
-            semaforoGlobal.acquire();
-            todosProcesos.insertFinal(proceso);
-            planificador.agregarProceso(proceso);
-            proceso.iniciarEjecucion();
-        } catch (InterruptedException e) {
-            log("Interrupción al agregar proceso", Color.RED);
-        } finally {
-            semaforoGlobal.release();
-            log("Proceso agregado: " + proceso.getName());
-        }
+        todosProcesos.insertFinal(proceso);
+        planificador.agregarProceso(proceso);
+        proceso.iniciarEjecucion();
+        // La GUI se actualiza desde el log, así que esta línea no es estrictamente necesaria aquí,
+        // pero la mantenemos para consistencia.
+        log("📥 Proceso '" + proceso.getName() + "' agregado.", Color.WHITE);
     }
     
     /**
@@ -339,6 +343,7 @@ public class Engine {
                 if (proceso == procesoEjecutandoActual) {
                     procesoEjecutandoActual = null;
                     cambiosContexto++;
+                    this.precioTotal += PESO_CAMBIO_CONTEXTO; // **NUEVO: Costo por cambio de contexto**
                 }
             }
             
@@ -541,25 +546,14 @@ public class Engine {
         }
     }
     
+    // **CORREGIDO: Eliminado el bloqueo de semáforo**
     public int contarProcesosActivos() {
        int activos = 0;
-       try {
-           semaforoGlobal.acquire();
-
-           for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-               Proceso p = (Proceso) todosProcesos.get(i);
-               if (p != null && !p.isFinished()) {
-                   // verifica si NO está terminado
-                   // Los procesos suspendidos se consideran activos porque pueden reanudarse
-                   activos++;
-               }
+       for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+           Proceso p = (Proceso) todosProcesos.get(i);
+           if (p != null && !p.isFinished()) {
+               activos++;
            }
-
-           semaforoGlobal.release();
-
-       } catch (InterruptedException e) {
-           Thread.currentThread().interrupt();
-           semaforoGlobal.release();
        }
        return activos;
    }
@@ -585,36 +579,34 @@ public class Engine {
         return copia;
     }
     
+    // **CORREGIDO: Eliminado el bloqueo de semáforo**
     public ListaSimple getProcesosListosSuspendidos() {
         ListaSimple listosSuspendidos = new ListaSimple();
-        try {
-            semaforoGlobal.acquire();
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (p.getState() == Proceso.Estado.SUS_LISTO) {
-                    listosSuspendidos.insertFinal(p);
-                }
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (p.getState() == Proceso.Estado.SUS_LISTO) {
+                listosSuspendidos.insertFinal(p);
             }
-        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        finally { if (semaforoGlobal.availablePermits() == 0) semaforoGlobal.release(); }
+        }
         return listosSuspendidos;
     }
 
+    // **CORREGIDO: Eliminado el bloqueo de semáforo**
     public ListaSimple getProcesosBloqueadosSuspendidos() {
         ListaSimple bloqueadosSuspendidos = new ListaSimple();
-        try {
-            semaforoGlobal.acquire();
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (p.getState() == Proceso.Estado.SUS_BLOQUEADO) {
-                    bloqueadosSuspendidos.insertFinal(p);
-                }
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (p.getState() == Proceso.Estado.SUS_BLOQUEADO) {
+                bloqueadosSuspendidos.insertFinal(p);
             }
-        } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        finally { if (semaforoGlobal.availablePermits() == 0) semaforoGlobal.release(); }
+        }
         return bloqueadosSuspendidos;
     }
     
+    // **NUEVO: Getter para la lista de procesos terminados**
+    public ListaSimple getProcesosTerminados() {
+        return this.procesosTerminados;
+    }
     
     public boolean isSimulacionActiva() {
         return simulacionActiva;
@@ -714,6 +706,11 @@ public class Engine {
         return (double) sumaTiemposEspera / procesosTerminados.sizeLista();
     }
     
+    // **NUEVO: Getter para el precio total**
+    public double getPrecioTotal() {
+        return this.precioTotal;
+    }
+    
     private void log(String mensaje, Color color) {
         if (this.consola != null) {
             SwingUtilities.invokeLater(() -> consola.agregarLinea(mensaje, color));
@@ -725,44 +722,26 @@ public class Engine {
         log(mensaje, Color.WHITE);
     }
     
-     /**
-     * Lista de procesos listos
-     */
+    // **CORREGIDO: Eliminado el bloqueo de semáforo**
     public ListaSimple getProcesosListos() {
         ListaSimple listos = new ListaSimple();
-        try {
-            semaforoGlobal.acquire();
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (p.getState() == Proceso.Estado.LISTO) {
-                    listos.insertFinal(p);
-                }
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (p.getState() == Proceso.Estado.LISTO) {
+                listos.insertFinal(p);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            semaforoGlobal.release();
         }
         return listos;
     }
 
-    /**
-     * Lista de procesos bloqueados
-     */
+    // **CORREGIDO: Eliminado el bloqueo de semáforo**
     public ListaSimple getProcesosBloqueados() {
         ListaSimple bloqueados = new ListaSimple();
-        try {
-            semaforoGlobal.acquire();
-            for (int i = 0; i < todosProcesos.sizeLista(); i++) {
-                Proceso p = (Proceso) todosProcesos.get(i);
-                if (p.getState() == Proceso.Estado.BLOQUEADO) {
-                    bloqueados.insertFinal(p);
-                }
+        for (int i = 0; i < todosProcesos.sizeLista(); i++) {
+            Proceso p = (Proceso) todosProcesos.get(i);
+            if (p.getState() == Proceso.Estado.BLOQUEADO) {
+                bloqueados.insertFinal(p);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        } finally {
-            semaforoGlobal.release();
         }
         return bloqueados;
     }
@@ -797,6 +776,7 @@ public class Engine {
         }
 
         cambiosContexto++;
+        this.precioTotal += PESO_CAMBIO_CONTEXTO; // **NUEVO: Costo por cambio de contexto**
     }
     
     public void setPlanificador(Planificador nuevoPlanificador) {
@@ -881,4 +861,4 @@ public class Engine {
         }
     }
     
-    }
+}

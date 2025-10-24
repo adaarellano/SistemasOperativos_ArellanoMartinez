@@ -104,7 +104,7 @@ public class Engine {
                     Proceso nuevoProceso = (Proceso) jobPool.get(0);
                     jobPool.deleteBegin(); 
                     agregarProceso(nuevoProceso);
-                    log("💼 LARGO PLAZO: Proceso '" + nuevoProceso.getName() + "' admitido al sistema.", Color.CYAN);
+                    log(" LARGO PLAZO: Proceso '" + nuevoProceso.getName() + "' admitido al sistema.", Color.CYAN);
                 }
                 
                 // Revisamos si la interfaz dejó una "nota" para cambiar el planificador
@@ -805,7 +805,7 @@ public class Engine {
 
         if (candidato != null) {
             suspenderProceso(candidato); // Usamos el método que ya tenías
-            log("🔵 Proceso '" + candidato.getName() + "' suspendido por el sistema.", Color.BLUE);
+            log("Proceso '" + candidato.getName() + "' suspendido por el sistema.", Color.BLUE);
         }
 }
 
@@ -856,7 +856,7 @@ public class Engine {
             if (listosSuspendidos.sizeLista() > 0) {
                 Proceso candidato = (Proceso) listosSuspendidos.get(0);
                 reanudarProceso(candidato);
-                log("💿 MEDIANO PLAZO: Hay espacio. Proceso '" + candidato.getName() + "' reanudado.", Color.MAGENTA);
+                log("MEDIANO PLAZO: Hay espacio. Proceso '" + candidato.getName() + "' reanudado.", Color.MAGENTA);
             }
         }
     }

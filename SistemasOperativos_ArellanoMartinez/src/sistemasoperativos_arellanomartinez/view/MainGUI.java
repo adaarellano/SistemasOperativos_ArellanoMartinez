@@ -42,7 +42,7 @@ public class MainGUI extends JFrame {
     private JComboBox<String> selectorAlgoritmo;
     private Engine motorSimulacionActual;
     private ListaSimple procesosParaSimular;
-    
+    private ConsoleRedirector consoleRedirector; // NUEVO: Para redirigir output
     
     // Colores estilo gamer
     private final Color COLOR_FONDO = new Color(15, 15, 35);
@@ -51,9 +51,6 @@ public class MainGUI extends JFrame {
     
     // Modelos y Listas para la GUI
     private DefaultListModel<String> modeloListaListos;
-    private DefaultListModel<String> modeloListaBloqueados;
-    private DefaultListModel<String> modeloListaListosSus;
-    private DefaultListModel<String> modeloListaBloqueadosSus;
     private DefaultListModel<String> modeloListaTerminados;
 
     // Componentes de la GUI
@@ -66,13 +63,17 @@ public class MainGUI extends JFrame {
         this.procesosParaSimular = new ListaSimple(); 
         configurarVentana();
         crearComponentes();
+        
+        // NUEVO: Inicializar el redireccionamiento DESPUÉS de crear los componentes
+        consoleRedirector = new ConsoleRedirector(consola);
+        
         agregarEventos();
         mostrarBienvenida();
         
     }
     
     private void configurarVentana() {
-        setTitle("SIMULADOR DE SISTEMAS OPERATIVOS"); // Quitado emoji
+        setTitle("SIMULADOR DE SISTEMAS OPERATIVOS");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800); 
         setLocationRelativeTo(null); 
@@ -88,57 +89,53 @@ public class MainGUI extends JFrame {
         panelDashboard.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panelDashboard.setBackground(COLOR_FONDO);
 
-        JPanel panelIzquierda = new JPanel(new GridLayout(2, 1, 10, 10));
-        panelIzquierda.setOpaque(false);
-        panelIzquierda.add(crearPanelCola("Procesos Listos"));
-        panelIzquierda.add(crearPanelCola("Listos-Suspendidos"));
+        // Panel izquierdo: Procesos Listos (MÁS PEQUEÑO)
+        JPanel panelIzquierda = crearPanelCola("Procesos Listos");
+        this.modeloListaListos = ((DefaultListModel<String>)((JList<String>)((JScrollPane)panelIzquierda.getComponent(1)).getViewport().getView()).getModel());
         
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.weightx = 0.33; gbc.weighty = 1.0; gbc.gridx = 0; gbc.gridy = 0;
+        gbc.weightx = 0.20; // REDUCIDO: de 0.33 a 0.20 (menos espacio para procesos listos)
+        gbc.weighty = 1.0; 
+        gbc.gridx = 0; 
+        gbc.gridy = 0;
         gbc.insets = new Insets(0, 0, 0, 10);
         panelDashboard.add(panelIzquierda, gbc);
 
+        // Panel central: CPU y consola expandida (MÁS GRANDE)
         JPanel panelCentro = new JPanel(new BorderLayout(10, 10));
         panelCentro.setOpaque(false);
         panelCentro.add(crearPanelCPU(), BorderLayout.NORTH);
-        JPanel panelColasBloqueados = new JPanel(new GridLayout(2, 1, 10, 10));
-        panelColasBloqueados.setOpaque(false);
-        panelColasBloqueados.add(crearPanelCola("Procesos Bloqueados"));
-        panelColasBloqueados.add(crearPanelCola("Bloqueados-Suspendidos"));
-        panelCentro.add(panelColasBloqueados, BorderLayout.CENTER);
-
-        gbc.gridx = 1;
-        panelDashboard.add(panelCentro, gbc);
-
-        JPanel panelDerecha = new JPanel(new GridLayout(2, 1, 10, 10));
-        panelDerecha.setOpaque(false);
-        panelDerecha.add(crearPanelInfoPCB());
-        panelDerecha.add(crearPanelCola("Procesos Culminados"));
         
-        gbc.gridx = 2;
-        panelDashboard.add(panelDerecha, gbc);
-    
+        // Crear consola con barra de navegación
         consola = new ConsolaGamer();
         JScrollPane scrollConsola = new JScrollPane(consola);
         scrollConsola.setBorder(BorderFactory.createLineBorder(COLOR_BOTON, 2));
+        scrollConsola.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollConsola.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         
-        // **INICIO DE LA CORRECCIÓN CLAVE**
-        // 1. Creamos un panel contenedor para la consola.
-        JPanel panelContenedorConsola = new JPanel(new BorderLayout());
-        // 2. Añadimos la consola (con su scroll) al CENTRO de este contenedor.
-        //    Esto fuerza a la consola a ocupar solo el espacio disponible.
-        panelContenedorConsola.add(scrollConsola, BorderLayout.CENTER);
-        // **FIN DE LA CORRECCIÓN CLAVE**
+        panelCentro.add(scrollConsola, BorderLayout.CENTER);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.60; // AUMENTADO: de 0.67 a 0.60 (más espacio para la consola)
+        panelDashboard.add(panelCentro, gbc);
+
+        // Panel derecho: Info PCB y Procesos Culminados
+        JPanel panelDerecha = new JPanel(new GridLayout(2, 1, 10, 10));
+        panelDerecha.setOpaque(false);
+        panelDerecha.add(crearPanelInfoPCB());
+        
+        JPanel panelTerminados = crearPanelCola("Procesos Culminados");
+        this.modeloListaTerminados = ((DefaultListModel<String>)((JList<String>)((JScrollPane)panelTerminados.getComponent(1)).getViewport().getView()).getModel());
+        panelDerecha.add(panelTerminados);
+        
+        gbc.gridx = 2;
+        gbc.weightx = 0.20; // MANTENIDO: 0.20 para el panel derecho
+        panelDashboard.add(panelDerecha, gbc);
 
         JPanel panelBotones = crearPanelBotones();
         
-        JSplitPane splitPaneCentral = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panelDashboard, panelContenedorConsola);
-        splitPaneCentral.setResizeWeight(0.5);
-        splitPaneCentral.setBorder(null);
-        splitPaneCentral.setContinuousLayout(true);
-
         add(panelTitulo, BorderLayout.NORTH);
-        add(splitPaneCentral, BorderLayout.CENTER);
+        add(panelDashboard, BorderLayout.CENTER);
         add(panelBotones, BorderLayout.SOUTH);
     }
     
@@ -148,27 +145,21 @@ public class MainGUI extends JFrame {
 
         lista.setBackground(new Color(20, 20, 40));
         lista.setForeground(Color.WHITE);
-        lista.setFont(new Font("Consolas", Font.PLAIN, 14));
-
-        if (titulo.contains("Listos-Suspendidos")) {
-            this.modeloListaListosSus = modelo;
-        } else if (titulo.contains("Listos")) {
-            this.modeloListaListos = modelo;
-        } else if (titulo.contains("Bloqueados-Suspendidos")) {
-            this.modeloListaBloqueadosSus = modelo;
-        } else if (titulo.contains("Bloqueados")) {
-            this.modeloListaBloqueados = modelo;
-        } else if (titulo.contains("Culminados")) { 
-            this.modeloListaTerminados = modelo;
-        }
+        lista.setFont(new Font("Consolas", Font.PLAIN, 12)); // Fuente ligeramente más pequeña
 
         JPanel panel = new JPanel(new BorderLayout());
         JLabel labelTitulo = new JLabel(titulo, SwingConstants.CENTER);
         labelTitulo.setForeground(COLOR_TEXTO);
-        labelTitulo.setFont(new Font("Consolas", Font.BOLD, 16));
+        labelTitulo.setFont(new Font("Consolas", Font.BOLD, 14)); // Título más pequeño
 
         panel.add(labelTitulo, BorderLayout.NORTH);
-        panel.add(new JScrollPane(lista), BorderLayout.CENTER);
+        
+        // Hacer la lista más compacta
+        JScrollPane scrollPane = new JScrollPane(lista);
+        scrollPane.setPreferredSize(new Dimension(150, 200)); // Tamaño más compacto
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        panel.add(scrollPane, BorderLayout.CENTER);
         panel.setBorder(BorderFactory.createLineBorder(COLOR_BOTON, 1));
         panel.setOpaque(false);
 
@@ -196,7 +187,7 @@ public class MainGUI extends JFrame {
         panel.add(labelModoOperacion, BorderLayout.SOUTH);
         panel.add(labelProcesoCPU, BorderLayout.CENTER);
         
-        panel.setPreferredSize(new Dimension(200, 150)); 
+        panel.setPreferredSize(new Dimension(200, 120)); // Un poco más compacto
 
         return panel;
     }
@@ -204,15 +195,18 @@ public class MainGUI extends JFrame {
     private JPanel crearPanelInfoPCB() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(COLOR_BOTON), "Info del Proceso (PCB)", 0, 0, new Font("Consolas", Font.BOLD, 16), COLOR_TEXTO));
+        panel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(COLOR_BOTON), "Info del Proceso (PCB)", 0, 0, new Font("Consolas", Font.BOLD, 14), COLOR_TEXTO)); // Título más pequeño
 
         areaInfoProceso = new JTextArea("Selecciona un proceso...");
         areaInfoProceso.setEditable(false);
         areaInfoProceso.setBackground(new Color(20, 20, 40));
         areaInfoProceso.setForeground(Color.WHITE);
-        areaInfoProceso.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        areaInfoProceso.setFont(new Font("Monospaced", Font.PLAIN, 11)); // Fuente más pequeña
 
-        panel.add(new JScrollPane(areaInfoProceso), BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(areaInfoProceso);
+        scrollPane.setPreferredSize(new Dimension(200, 150)); // Tamaño más compacto
+        
+        panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
@@ -222,7 +216,7 @@ public class MainGUI extends JFrame {
         panel.setBackground(COLOR_FONDO);
         panel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         
-        JLabel titulo = new JLabel("SIMULADOR DE SISTEMAS OPERATIVOS"); // Quitado emoji
+        JLabel titulo = new JLabel("SIMULADOR DE SISTEMAS OPERATIVOS");
         titulo.setFont(new Font("Consolas", Font.BOLD, 24));
         titulo.setForeground(COLOR_TEXTO);
         
@@ -242,11 +236,11 @@ public class MainGUI extends JFrame {
         gbc.insets = new Insets(2, 5, 2, 5);
         gbc.weightx = 1.0;
 
-        btnSalir = crearBotonGamer("SALIR"); // Quitado emoji
+        btnSalir = crearBotonGamer("SALIR");
         btnAgregarProceso = crearBotonGamer("Añadir Proceso");
         guardar = crearBotonGamer("Guardar");
         cargar = crearBotonGamer("Cargar archivo");
-        btnIniciar = crearBotonGamer("Iniciar Simulacion"); // Quitado emoji
+        btnIniciar = crearBotonGamer("Iniciar Simulacion");
         
         selectorAlgoritmo = new JComboBox<>(new String[]{"FCFS", "Round Robin", "SPN", "SRT", "HRRN", "Feedback"});
         selectorAlgoritmo.setFont(new Font("Consolas", Font.BOLD, 12));
@@ -305,11 +299,11 @@ public class MainGUI extends JFrame {
         btnIniciar.addActionListener(e -> {
             if (motorSimulacionActual == null || !motorSimulacionActual.isSimulacionActiva()) {
                 ejecutarSimulacion();
-                btnIniciar.setText("Detener Simulación"); // Quitado emoji
+                btnIniciar.setText("Detener Simulación");
                 btnIniciar.setBackground(Color.RED);
             } else {
                 motorSimulacionActual.detenerSimulacion();
-                btnIniciar.setText("Iniciar Simulación"); // Quitado emoji
+                btnIniciar.setText("Iniciar Simulación");
                 btnIniciar.setBackground(COLOR_BOTON);
             }
         });
@@ -325,7 +319,11 @@ public class MainGUI extends JFrame {
         guardar.addActionListener(e -> guardarConfiguracion());
         cargar.addActionListener(e -> cargarConfiguracion());
         btnSalir.addActionListener(e -> {
-            consola.agregarLinea("¡Hasta la proxima!", Color.ORANGE); // Quitado emoji
+            // NUEVO: Restaurar los streams originales antes de salir
+            if (consoleRedirector != null) {
+                consoleRedirector.restoreSystemStreams();
+            }
+            consola.agregarLinea("¡Hasta la proxima!", Color.ORANGE);
             try { Thread.sleep(1000); } catch (Exception ex) {}
             System.exit(0);
         });
@@ -334,7 +332,7 @@ public class MainGUI extends JFrame {
             if (!source.getValueIsAdjusting()) {
                 int nuevaDuracion = source.getValue();
                 Reloj.setCycleDurationMs(nuevaDuracion);
-                consola.agregarLinea("Velocidad del ciclo ajustada a " + nuevaDuracion + " ms.", Color.GRAY); // Quitado emoji
+                consola.agregarLinea("Velocidad del ciclo ajustada a " + nuevaDuracion + " ms.", Color.GRAY);
             }
         });
         
@@ -356,10 +354,16 @@ public class MainGUI extends JFrame {
     
     private void mostrarBienvenida() {
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
-        consola.agregarLinea("BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN); // Quitado emoji
-        consola.agregarLinea("STYLE GAMER EDITION", Color.CYAN); // Quitado emoji
+        consola.agregarLinea("BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN);
+        consola.agregarLinea("STYLE GAMER EDITION", Color.CYAN);
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
         consola.agregarLinea("");
+        
+        // NUEVO: Mensaje de prueba para mostrar que el redireccionamiento funciona
+        System.out.println("=== OUTPUT REDIRIGIDO FUNCIONANDO ===");
+        System.out.println("Todos los mensajes de System.out aparecerán aquí");
+        System.err.println("Los mensajes de error (System.err) aparecen en ROJO");
+        System.out.println("Puedes usar println() normalmente en tu código");
     }
     
     private void ejecutarSimulacion() {
@@ -383,8 +387,8 @@ public class MainGUI extends JFrame {
                 motorSimulacionActual = new Engine(planificadorInicial, this.consola, jobPool);
                 SwingUtilities.invokeLater(() -> {
                     consola.limpiar();
-                    consola.agregarLinea("INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN); // Quitado emoji
-                    consola.agregarLinea(jobPool.sizeLista() + " procesos enviados al pool de trabajos.", Color.WHITE); // Quitado emoji
+                    consola.agregarLinea("INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
+                    consola.agregarLinea(jobPool.sizeLista() + " procesos enviados al pool de trabajos.", Color.WHITE);
                     consola.agregarSeparador();
                 });
             
@@ -416,7 +420,7 @@ public class MainGUI extends JFrame {
                     final double tEsperaProm = motorSimulacionActual.getTiempoEsperaPromedio();
                     
                     final String resultados = String.format(
-                        "METRICAS FINALES (%s):\n" + // Quitado emoji
+                        "METRICAS FINALES (%s):\n" +
                         "    • Throughput: %.4f procesos/ciclo\n" +
                         "    • Utilizacion de CPU: %.2f%%\n" +
                         "    • Tiempo de Retorno Promedio: %.2f ciclos\n" +
@@ -442,7 +446,7 @@ public class MainGUI extends JFrame {
                         // --- FIN: CÓDIGO AÑADIDO ---
                         
                         consola.agregarLinea("Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
-                        btnIniciar.setText("Iniciar Simulación"); // Quitado emoji
+                        btnIniciar.setText("Iniciar Simulación");
                         btnIniciar.setBackground(COLOR_BOTON);
                     });
                 }
@@ -562,7 +566,7 @@ public class MainGUI extends JFrame {
                 Proceso nuevoProceso = new Proceso(nombre, instrucciones, esCpuBound, ciclosES, duracionES, 0);
                 this.procesosParaSimular.insertFinal(nuevoProceso);
                 
-                consola.agregarLinea("Proceso '" + nombre + "' añadido a la lista. Total: " + procesosParaSimular.sizeLista(), Color.CYAN); // Quitado emoji
+                consola.agregarLinea("Proceso '" + nombre + "' añadido a la lista. Total: " + procesosParaSimular.sizeLista(), Color.CYAN);
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Error en los datos: " + e.getMessage(), "Error de Entrada", JOptionPane.ERROR_MESSAGE);
@@ -587,9 +591,9 @@ public class MainGUI extends JFrame {
 
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 gson.toJson(config, writer);
-                consola.agregarLinea("Configuracion guardada en: " + archivo.getAbsolutePath(), Color.CYAN); // Quitado emoji
+                consola.agregarLinea("Configuracion guardada en: " + archivo.getAbsolutePath(), Color.CYAN);
             } catch (IOException e) {
-                consola.agregarLinea("Error al guardar: " + e.getMessage(), Color.RED); // Quitado emoji
+                consola.agregarLinea("Error al guardar: " + e.getMessage(), Color.RED);
             }
         }
     }
@@ -626,27 +630,6 @@ public class MainGUI extends JFrame {
             for (int i = 0; i < procesosListos.sizeLista(); i++) {
                 Proceso p = (Proceso) procesosListos.get(i);
                 modeloListaListos.addElement(p.getId() + " - " + p.getName());
-            }
-
-            modeloListaBloqueados.clear();
-            ListaSimple procesosBloqueados = motorSimulacionActual.getProcesosBloqueados();
-            for (int i = 0; i < procesosBloqueados.sizeLista(); i++) {
-                Proceso p = (Proceso) procesosBloqueados.get(i);
-                modeloListaBloqueados.addElement(p.getId() + " - " + p.getName());
-            }
-            
-            modeloListaListosSus.clear();
-            ListaSimple procesosListosSus = motorSimulacionActual.getProcesosListosSuspendidos();
-            for (int i = 0; i < procesosListosSus.sizeLista(); i++) {
-                Proceso p = (Proceso) procesosListosSus.get(i);
-                modeloListaListosSus.addElement(p.getId() + " - " + p.getName());
-            }
-
-            modeloListaBloqueadosSus.clear();
-            ListaSimple procesosBloqueadosSus = motorSimulacionActual.getProcesosBloqueadosSuspendidos();
-            for (int i = 0; i < procesosBloqueadosSus.sizeLista(); i++) {
-                Proceso p = (Proceso) procesosBloqueadosSus.get(i);
-                modeloListaBloqueadosSus.addElement(p.getId() + " - " + p.getName());
             }
 
             modeloListaTerminados.clear();

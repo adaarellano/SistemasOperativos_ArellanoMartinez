@@ -19,6 +19,17 @@ import sistemasoperativos_arellanomartinez.Simulador.*;
 import sistemasoperativos_arellanomartinez.Controller.*;
 import edd.ListaSimple;
 
+// --- INICIO: IMPORTACIONES AÑADIDAS PARA LA GRÁFICA ---
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
+// --- FIN: IMPORTACIONES AÑADIDAS PARA LA GRÁFICA ---
+
+
 /**
  * VENTANA PRINCIPAL
  * Interfaz grafica principal
@@ -61,7 +72,7 @@ public class MainGUI extends JFrame {
     }
     
     private void configurarVentana() {
-        setTitle("🎮 SIMULADOR DE SISTEMAS OPERATIVOS");
+        setTitle("SIMULADOR DE SISTEMAS OPERATIVOS"); // Quitado emoji
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800); 
         setLocationRelativeTo(null); 
@@ -211,7 +222,7 @@ public class MainGUI extends JFrame {
         panel.setBackground(COLOR_FONDO);
         panel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
         
-        JLabel titulo = new JLabel("🕹️ SIMULADOR DE SISTEMAS OPERATIVOS");
+        JLabel titulo = new JLabel("SIMULADOR DE SISTEMAS OPERATIVOS"); // Quitado emoji
         titulo.setFont(new Font("Consolas", Font.BOLD, 24));
         titulo.setForeground(COLOR_TEXTO);
         
@@ -231,11 +242,11 @@ public class MainGUI extends JFrame {
         gbc.insets = new Insets(2, 5, 2, 5);
         gbc.weightx = 1.0;
 
-        btnSalir = crearBotonGamer("🚪 SALIR");
+        btnSalir = crearBotonGamer("SALIR"); // Quitado emoji
         btnAgregarProceso = crearBotonGamer("Añadir Proceso");
         guardar = crearBotonGamer("Guardar");
         cargar = crearBotonGamer("Cargar archivo");
-        btnIniciar = crearBotonGamer("▶ Iniciar Simulacion");
+        btnIniciar = crearBotonGamer("Iniciar Simulacion"); // Quitado emoji
         
         selectorAlgoritmo = new JComboBox<>(new String[]{"FCFS", "Round Robin", "SPN", "SRT", "HRRN", "Feedback"});
         selectorAlgoritmo.setFont(new Font("Consolas", Font.BOLD, 12));
@@ -294,11 +305,11 @@ public class MainGUI extends JFrame {
         btnIniciar.addActionListener(e -> {
             if (motorSimulacionActual == null || !motorSimulacionActual.isSimulacionActiva()) {
                 ejecutarSimulacion();
-                btnIniciar.setText("⏹ Detener Simulación");
+                btnIniciar.setText("Detener Simulación"); // Quitado emoji
                 btnIniciar.setBackground(Color.RED);
             } else {
                 motorSimulacionActual.detenerSimulacion();
-                btnIniciar.setText("▶ Iniciar Simulación");
+                btnIniciar.setText("Iniciar Simulación"); // Quitado emoji
                 btnIniciar.setBackground(COLOR_BOTON);
             }
         });
@@ -314,7 +325,7 @@ public class MainGUI extends JFrame {
         guardar.addActionListener(e -> guardarConfiguracion());
         cargar.addActionListener(e -> cargarConfiguracion());
         btnSalir.addActionListener(e -> {
-            consola.agregarLinea("👋 ¡Hasta la proxima!", Color.ORANGE);
+            consola.agregarLinea("¡Hasta la proxima!", Color.ORANGE); // Quitado emoji
             try { Thread.sleep(1000); } catch (Exception ex) {}
             System.exit(0);
         });
@@ -323,7 +334,7 @@ public class MainGUI extends JFrame {
             if (!source.getValueIsAdjusting()) {
                 int nuevaDuracion = source.getValue();
                 Reloj.setCycleDurationMs(nuevaDuracion);
-                consola.agregarLinea("⚙️ Velocidad del ciclo ajustada a " + nuevaDuracion + " ms.", Color.GRAY);
+                consola.agregarLinea("Velocidad del ciclo ajustada a " + nuevaDuracion + " ms.", Color.GRAY); // Quitado emoji
             }
         });
         
@@ -345,8 +356,8 @@ public class MainGUI extends JFrame {
     
     private void mostrarBienvenida() {
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
-        consola.agregarLinea("🎮 BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN);
-        consola.agregarLinea("🕹️  STYLE GAMER EDITION", Color.CYAN);
+        consola.agregarLinea("BIENVENIDO AL SIMULADOR DE SISTEMAS OPERATIVOS", Color.CYAN); // Quitado emoji
+        consola.agregarLinea("STYLE GAMER EDITION", Color.CYAN); // Quitado emoji
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
         consola.agregarLinea("");
     }
@@ -372,8 +383,8 @@ public class MainGUI extends JFrame {
                 motorSimulacionActual = new Engine(planificadorInicial, this.consola, jobPool);
                 SwingUtilities.invokeLater(() -> {
                     consola.limpiar();
-                    consola.agregarLinea("🚀 INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN);
-                    consola.agregarLinea("🗳️ " + jobPool.sizeLista() + " procesos enviados al pool de trabajos.", Color.WHITE);
+                    consola.agregarLinea("INICIANDO SIMULACIÓN: " + planificadorInicial.getNombreAlgoritmo(), Color.GREEN); // Quitado emoji
+                    consola.agregarLinea(jobPool.sizeLista() + " procesos enviados al pool de trabajos.", Color.WHITE); // Quitado emoji
                     consola.agregarSeparador();
                 });
             
@@ -399,33 +410,112 @@ public class MainGUI extends JFrame {
                 if (motorSimulacionActual != null) {
                     motorSimulacionActual.detenerSimulacion();
 
+                    // --- INICIO: Captura de métricas (ya existía) ---
+                    final String nombreAlgoritmo = motorSimulacionActual.getPlanificador().getNombreAlgoritmo();
+                    final double tRetornoProm = motorSimulacionActual.getTiempoRetornoPromedio();
+                    final double tEsperaProm = motorSimulacionActual.getTiempoEsperaPromedio();
+                    
                     final String resultados = String.format(
-                        "📊 METRICAS FINALES (%s):\n" +
-                        "   • Throughput: %.4f procesos/ciclo\n" +
-                        "   • Utilizacion de CPU: %.2f%%\n" +
-                        "   • Tiempo de Retorno Promedio: %.2f ciclos\n" +
-                        "   • Tiempo de Espera Promedio: %.2f ciclos\n" +
-                        "   • Precio Total Computacional: %.2f",
-                        motorSimulacionActual.getPlanificador().getNombreAlgoritmo(),
+                        "METRICAS FINALES (%s):\n" + // Quitado emoji
+                        "    • Throughput: %.4f procesos/ciclo\n" +
+                        "    • Utilizacion de CPU: %.2f%%\n" +
+                        "    • Tiempo de Retorno Promedio: %.2f ciclos\n" +
+                        "    • Tiempo de Espera Promedio: %.2f ciclos\n" +
+                        "    • Precio Total Computacional: %.2f",
+                        nombreAlgoritmo,
                         motorSimulacionActual.getThroughput(),
                         motorSimulacionActual.getUtilizacionCPU(),
-                        motorSimulacionActual.getTiempoRetornoPromedio(),
-                        motorSimulacionActual.getTiempoEsperaPromedio(),
+                        tRetornoProm,
+                        tEsperaProm,
                         motorSimulacionActual.getPrecioTotal()
                     );
+                    // --- FIN: Captura de métricas ---
 
                     SwingUtilities.invokeLater(() -> {
                         consola.agregarSeparador();
                         consola.agregarLinea("SIMULACION COMPLETADA", Color.GREEN);
                         consola.agregarLinea(resultados, Color.YELLOW);
+                        
+                        // --- INICIO: CÓDIGO AÑADIDO ---
+                        // Llamar al nuevo método para mostrar la gráfica emergente
+                        mostrarGraficaResultados(nombreAlgoritmo, tRetornoProm, tEsperaProm);
+                        // --- FIN: CÓDIGO AÑADIDO ---
+                        
                         consola.agregarLinea("Puedes cambiar el algoritmo y volver a iniciar.", Color.ORANGE);
-                        btnIniciar.setText("▶ Iniciar Simulación");
+                        btnIniciar.setText("Iniciar Simulación"); // Quitado emoji
                         btnIniciar.setBackground(COLOR_BOTON);
                     });
                 }
             }
         }).start();
     }
+
+    // --- INICIO: MÉTODO NUEVO AÑADIDO PARA LA GRÁFICA ---
+    /**
+     * Crea y muestra una ventana emergente (JFrame) con una gráfica de barras
+     * de JFreeChart que muestra los resultados de la simulación.
+     * @param nombreAlgoritmo El nombre del algoritmo ejecutado.
+     * @param tRetornoProm El tiempo de retorno promedio.
+     * @param tEsperaProm El tiempo de espera promedio.
+     */
+    private void mostrarGraficaResultados(String nombreAlgoritmo, double tRetornoProm, double tEsperaProm) {
+        
+        // 1. Crear el Dataset (los datos de la gráfica)
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        
+        // Añadimos dos series de datos. Cada una tendrá una barra.
+        // valor, nombreDeLaSerie (leyenda), nombreDeLaCategoria (eje X)
+        dataset.addValue(tRetornoProm, "Tiempo de Retorno Prom.", nombreAlgoritmo);
+        dataset.addValue(tEsperaProm, "Tiempo de Espera Prom.", nombreAlgoritmo);
+
+        // 2. Crear el Gráfico de Barras
+        JFreeChart barChart = ChartFactory.createBarChart(
+            "Reporte de Rendimiento: " + nombreAlgoritmo, // Título principal de la gráfica
+            "Métricas",          // Etiqueta Eje X
+            "Ciclos Promedio",   // Etiqueta Eje Y
+            dataset,
+            PlotOrientation.VERTICAL,
+            true,  // Mostrar leyenda
+            true,  // Usar tooltips (mostrar valor al pasar el mouse)
+            false  // No usar URLs
+        );
+
+        // 3. Aplicar Estilo (simple y legible, basado en tu tema)
+        barChart.setBackgroundPaint(COLOR_FONDO); // Fondo de la ventana
+        barChart.getTitle().setPaint(COLOR_TEXTO); // Color del título
+        barChart.getLegend().setBackgroundPaint(COLOR_FONDO); // Fondo de la leyenda
+        barChart.getLegend().setItemPaint(Color.WHITE); // Texto de la leyenda
+
+        CategoryPlot plot = barChart.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(20, 20, 40)); // Fondo del área de la gráfica
+        plot.setRangeGridlinePaint(COLOR_BOTON); // Líneas de la cuadrícula
+        plot.setDomainGridlinesVisible(false); // Ocultar líneas verticales (más limpio)
+
+        // Estilo de los ejes
+        plot.getDomainAxis().setLabelPaint(Color.WHITE);
+        plot.getDomainAxis().setTickLabelPaint(Color.WHITE);
+        plot.getRangeAxis().setLabelPaint(Color.WHITE);
+        plot.getRangeAxis().setTickLabelPaint(Color.WHITE);
+        
+        // Estilo de las barras
+        BarRenderer renderer = (BarRenderer) plot.getRenderer();
+        renderer.setSeriesPaint(0, COLOR_TEXTO); // Color para la barra "Tiempo de Retorno"
+        renderer.setSeriesPaint(1, Color.ORANGE);  // Color para la barra "Tiempo de Espera"
+        renderer.setDrawBarOutline(false); // Sin borde
+        
+        // 4. Crear el Panel y la Ventana Emergente
+        ChartPanel chartPanel = new ChartPanel(barChart);
+        chartPanel.setPreferredSize(new Dimension(550, 400)); // Tamaño por defecto
+
+        JFrame popupFrame = new JFrame("Reporte: " + nombreAlgoritmo);
+        popupFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Se cierra solo esta ventana
+        popupFrame.setContentPane(chartPanel);
+        popupFrame.pack(); // Ajusta la ventana al tamaño del chartPanel
+        popupFrame.setLocationRelativeTo(this); // Centra la ventana sobre la MainGUI
+        popupFrame.setVisible(true); // Muestra la ventana
+    }
+    // --- FIN: MÉTODO NUEVO AÑADIDO PARA LA GRÁFICA ---
+
     
     private void mostrarFormularioProceso() {
         JTextField nombreField = new JTextField();
@@ -456,7 +546,7 @@ public class MainGUI extends JFrame {
         panelForm.add(duracionESField);
 
         int resultado = JOptionPane.showConfirmDialog(this, panelForm, "Agregar Nuevo Proceso",
-                                                  JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+                                                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (resultado == JOptionPane.OK_OPTION) {
             try {
@@ -472,7 +562,7 @@ public class MainGUI extends JFrame {
                 Proceso nuevoProceso = new Proceso(nombre, instrucciones, esCpuBound, ciclosES, duracionES, 0);
                 this.procesosParaSimular.insertFinal(nuevoProceso);
                 
-                consola.agregarLinea("✅ Proceso '" + nombre + "' añadido a la lista. Total: " + procesosParaSimular.sizeLista(), Color.CYAN);
+                consola.agregarLinea("Proceso '" + nombre + "' añadido a la lista. Total: " + procesosParaSimular.sizeLista(), Color.CYAN); // Quitado emoji
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Error en los datos: " + e.getMessage(), "Error de Entrada", JOptionPane.ERROR_MESSAGE);
@@ -497,9 +587,9 @@ public class MainGUI extends JFrame {
 
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 gson.toJson(config, writer);
-                consola.agregarLinea("💾 Configuracion guardada en: " + archivo.getAbsolutePath(), Color.CYAN);
+                consola.agregarLinea("Configuracion guardada en: " + archivo.getAbsolutePath(), Color.CYAN); // Quitado emoji
             } catch (IOException e) {
-                consola.agregarLinea("❌ Error al guardar: " + e.getMessage(), Color.RED);
+                consola.agregarLinea("Error al guardar: " + e.getMessage(), Color.RED); // Quitado emoji
             }
         }
     }

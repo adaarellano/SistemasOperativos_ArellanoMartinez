@@ -76,16 +76,19 @@ public class Engine {
      * Inicia la simulacion en un hilo separado
      */
     public void iniciarSimulacion() {
+        // Si ya está activa, detenerla primero para forzar reinicio
         if (simulacionActiva) {
-            log("La simulacion ya esta activa", Color.ORANGE);
-            return;
+            detenerSimulacion();
         }
-        
+
+        // Resetear ciclos y reloj para un inicio fresco
+        this.ciclosTotales = 0;
+        Reloj.reset();  
+
         simulacionActiva = true;
         hiloSimulacion = new Thread(this::ejecutarCicloSimulacion);
         hiloSimulacion.setName("Engine-Simulation-Thread");
         hiloSimulacion.start();
-        
     }
     
     /**
@@ -104,7 +107,9 @@ public class Engine {
                     Proceso nuevoProceso = (Proceso) jobPool.get(0);
                     jobPool.deleteBegin(); 
                     agregarProceso(nuevoProceso);
-                    log(" LARGO PLAZO: Proceso '" + nuevoProceso.getName() + "' admitido al sistema.", Color.CYAN);
+
+                    log("LARGO PLAZO: Proceso '" + nuevoProceso.getName() + "' admitido al sistema.", Color.CYAN);
+
                 }
                 
                 // Revisamos si la interfaz dejó una "nota" para cambiar el planificador
@@ -325,7 +330,7 @@ public class Engine {
         proceso.iniciarEjecucion();
         // La GUI se actualiza desde el log, así que esta línea no es estrictamente necesaria aquí,
         // pero la mantenemos para consistencia.
-        log("📥 Proceso '" + proceso.getName() + "' agregado.", Color.WHITE);
+        log("Proceso '" + proceso.getName() + "' agregado.", Color.WHITE);
     }
     
     /**
@@ -805,7 +810,8 @@ public class Engine {
 
         if (candidato != null) {
             suspenderProceso(candidato); // Usamos el método que ya tenías
-            log("Proceso '" + candidato.getName() + "' suspendido por el sistema.", Color.BLUE);
+            log(" Proceso '" + candidato.getName() + "' suspendido por el sistema.", Color.BLUE);
+
         }
 }
 
@@ -825,7 +831,7 @@ public class Engine {
 
         if (candidato != null) {
             reanudarProceso(candidato); // Usamos el método que ya tenías
-            log("🟢 Proceso '" + candidato.getName() + "' reanudado por el sistema.", Color.GREEN);
+            log("? Proceso '" + candidato.getName() + "' reanudado por el sistema.", Color.GREEN);
         }
     }
     
@@ -847,7 +853,7 @@ public class Engine {
             }
             if (candidato != null) {
                 suspenderProceso(candidato);
-                log("💾 MEDIANO PLAZO: Sistema lleno. Proceso '" + candidato.getName() + "' suspendido.", Color.MAGENTA);
+                log(" MEDIANO PLAZO: Sistema lleno. Proceso '" + candidato.getName() + "' suspendido.", Color.MAGENTA);
             }
         }
         // Regla de Reanudación: Si hay espacio, reanudar a alguien.
@@ -856,9 +862,11 @@ public class Engine {
             if (listosSuspendidos.sizeLista() > 0) {
                 Proceso candidato = (Proceso) listosSuspendidos.get(0);
                 reanudarProceso(candidato);
-                log("MEDIANO PLAZO: Hay espacio. Proceso '" + candidato.getName() + "' reanudado.", Color.MAGENTA);
-            }
+
+                log(" MEDIANO PLAZO: Hay espacio. Proceso '" + candidato.getName() + "' reanudado.", Color.MAGENTA);
+
         }
     }
-    
+    }
 }
+    

@@ -258,8 +258,8 @@ public class MainGUI extends JFrame {
         JLabel etiquetaVelocidad = new JLabel("Velocidad:", SwingConstants.CENTER);
         etiquetaVelocidad.setForeground(Color.WHITE);
         
-        sliderVelocidad = new JSlider(JSlider.HORIZONTAL, 10, 1000, 100);
-        sliderVelocidad.setMajorTickSpacing(200);
+        sliderVelocidad = new JSlider(JSlider.HORIZONTAL, 1000, 60000, 5000);  // Cambiado: mínimo 1000 ms (1 seg), máximo 60000 ms (1 min), inicial 5000 ms (5 seg)
+        sliderVelocidad.setMajorTickSpacing(10000); 
         sliderVelocidad.setPaintTicks(true);
         sliderVelocidad.setOpaque(false);
 
@@ -268,7 +268,7 @@ public class MainGUI extends JFrame {
         
         panelContenedor.add(panelAcciones, BorderLayout.CENTER);
         panelContenedor.add(panelVelocidad, BorderLayout.SOUTH);
-
+        
         return panelContenedor;
     }
     
@@ -331,8 +331,8 @@ public class MainGUI extends JFrame {
             JSlider source = (JSlider) e.getSource();
             if (!source.getValueIsAdjusting()) {
                 int nuevaDuracion = source.getValue();
-                Reloj.setCycleDurationMs(nuevaDuracion);
-                consola.agregarLinea("Velocidad del ciclo ajustada a " + nuevaDuracion + " ms.", Color.GRAY);
+                Reloj.setCycleDurationMs(5000);
+               
             }
         });
         
@@ -359,11 +359,6 @@ public class MainGUI extends JFrame {
         consola.agregarLinea("=" .repeat(60), Color.YELLOW);
         consola.agregarLinea("");
         
-        // NUEVO: Mensaje de prueba para mostrar que el redireccionamiento funciona
-        System.out.println("=== OUTPUT REDIRIGIDO FUNCIONANDO ===");
-        System.out.println("Todos los mensajes de System.out aparecerán aquí");
-        System.err.println("Los mensajes de error (System.err) aparecen en ROJO");
-        System.out.println("Puedes usar println() normalmente en tu código");
     }
     
     private void ejecutarSimulacion() {
